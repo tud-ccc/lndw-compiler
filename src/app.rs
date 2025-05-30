@@ -1,4 +1,5 @@
 use eframe::egui;
+use crate::compiler::compile;
 use crate::gui::CodeEditor;
 
 #[derive(Default)]
@@ -14,22 +15,32 @@ impl LndwApp {
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
         cc.egui_ctx.set_visuals(egui::Visuals::light());
+        cc.egui_ctx.set_zoom_factor(1.5);
         Self::default()
     }
 }
 
 impl eframe::App for LndwApp {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::SidePanel::right("right_panel")
             .resizable(true)
-            .default_width(150.0)
-            .width_range(80.0..=200.0)
+            .default_width(200.0)
+            .width_range(80.0..=300.0)
             .show(ctx, |ui| {
                 ui.vertical_centered(|ui| {
-                    ui.heading("Right Panel");
+                    ui.heading("Output");
                 });
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    "asdfasdf\nasdfasdfasdfasdf\nasdfasdf".to_string()
+
+                ui.horizontal_centered(|ui| {
+                    egui::ScrollArea::vertical().id_salt("out").show(ui, |ui| {
+                        ui.add(
+                            egui::TextEdit::multiline(&mut self.asm_output.as_str())
+                                .font(egui::TextStyle::Monospace) // for cursor height
+                                .code_editor()
+                                .desired_rows(10)
+                                .desired_width(f32::INFINITY)
+                        );
+                    });
                 });
             });
 
@@ -38,20 +49,9 @@ impl eframe::App for LndwApp {
             
             self.code_editor.ui(ui);
 
-            self.asm_output = "asdfasdf\nasdfasdf".to_string();
-
-            egui::ScrollArea::vertical().id_salt("out").show(ui, |ui| {
-                if ui.button("Click me!").clicked() {
-                    println!("Click me!");
-                }
-                ui.add(
-                    egui::TextEdit::multiline(&mut self.asm_output.as_str())
-                        .font(egui::TextStyle::Monospace) // for cursor height
-                        .code_editor()
-                        .desired_rows(10)
-                        .desired_width(f32::INFINITY)
-                );
-            });
+            if ui.button("Click me!").clicked() {
+                self.asm_output = compile(&self.code_editor.code).unwrap_or_else(|e| format!("Error: {e}"))
+            }
         });
     }
 }
