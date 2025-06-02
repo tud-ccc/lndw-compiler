@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::vec;
 
@@ -5,6 +6,8 @@ use std::vec;
 pub enum LpErr {
     SExpr(String),
     Parse(String),
+    IR(String),
+    Interpret(String),
 }
 
 impl Display for LpErr {
@@ -12,6 +15,8 @@ impl Display for LpErr {
         match self {
             LpErr::SExpr(e) => write!(f, "{} (s-expr)", e),
             LpErr::Parse(e) => write!(f, "{} (parse)", e),
+            LpErr::IR(e) => write!(f, "{} (ir gen)", e),
+            LpErr::Interpret(e) => write!(f, "{} (interpreter)", e),
         }
     }
 }
@@ -67,8 +72,36 @@ enum Expr {
     },
 }
 
-pub fn compile(input: &String) -> Result<String, LpErr> {
-    parse_expr(&parse_sexpr(&mut tokenize(format!("({})", input)))?).map(|e| format!("{:#?}", e))
+pub type Reg = u8;
+
+#[derive(Debug, Clone)]
+pub enum Inst {
+    Add(Reg, Reg),
+    Sub(Reg, Reg),
+    Mul(Reg, Reg),
+    Div(Reg, Reg),
+    Store(i32, Reg),
+    Transfer(String, Reg),
+    Result(Reg),
+}
+
+impl Display for Inst {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Inst::Add(a, b) => write!(f, "add register {a} to register {b}"),
+            Inst::Sub(a, b) => write!(f, "subtract register {a} from register {b}"),
+            Inst::Mul(a, b) => write!(f, "multiply register {a} by register {b}"),
+            Inst::Div(a, b) => write!(f, "divide register {a} by register {b}"),
+            Inst::Store(n, r) => write!(f, "store the number {n} in register {r}"),
+            Inst::Transfer(v, r) => write!(f, "transfer variable {v} to register {r}"),
+            Inst::Result(r) => write!(f, "the result is in register {r}"),
+        }
+    }
+}
+
+pub fn compile(input: &String) -> Result<(Vec<Inst>, HashMap<String, Reg>), LpErr> {
+    let ast = parse_expr(&parse_sexpr(&mut tokenize(format!("({})", input)))?)?;
+    generate_ir(&ast)
 }
 
 fn tokenize(expr: impl Into<String>) -> Vec<Token> {
@@ -136,6 +169,97 @@ fn parse_op(op: &String) -> Result<Operator, LpErr> {
         "*" => Ok(Operator::Mul),
         "/" => Ok(Operator::Div),
         _ => Err(LpErr::Parse(format!("unknown operator `{}`", op)))
+    }
+}
+
+fn generate_ir(ast: &Expr) -> Result<(Vec<Inst>, HashMap<String, Reg>), LpErr> {
+    let mut reg_counter = 0;
+    let mut code: Vec<Inst> = vec![];
+    let mut variables = HashMap::new();
+
+    let result_reg = ast_to_ir(ast, &mut reg_counter, &mut code, &mut variables)?;
+    code.push(Inst::Result(result_reg));
+    Ok((code, variables))
+}
+
+fn ast_to_ir(ast: &Expr, next_reg: &mut u8, code: &mut Vec<Inst>, variables: &mut HashMap<String, Reg>) -> Result<u8, LpErr> {
+    match ast {
+        Expr::Num(n) => {
+            let reg = *next_reg;
+            code.push(Inst::Store(*n, reg));
+            *next_reg += 1;
+            Ok(reg)
+        }
+        Expr::Var(v) => {
+            let reg = *next_reg; // TODO: avoid duplicate register mapping+transfer
+            code.push(Inst::Transfer(v.clone(), reg));
+            variables.insert(v.clone(), reg);
+            *next_reg += 1;
+            Ok(reg)
+        }
+        Expr::BinaryOp { left, op, right } => {
+            let left_reg = ast_to_ir(left, next_reg, code, variables)?;
+            let right_reg = ast_to_ir(right, next_reg, code, variables)?;
+
+            let inst = match op {
+                Operator::Add => Inst::Add(left_reg, right_reg),
+                Operator::Sub => Inst::Sub(left_reg, right_reg),
+                Operator::Mul => Inst::Mul(left_reg, right_reg),
+                Operator::Div => Inst::Div(left_reg, right_reg),
+            };
+
+            code.push(inst);
+            Ok(right_reg)
+        }
+    }
+}
+
+pub fn interpret_ir(instructions: Vec<Inst>, variable_mapping: &HashMap<String, (Reg, String)>) -> Result<i32, LpErr> {
+    let mut reg_store: HashMap<Reg, i32> = variable_mapping.iter()
+        .map(|(var, (reg, val))| val.parse::<i32>().map(|v| (*reg, v)).map_err(|_| LpErr::Interpret(format!("couldn't interpret `{val}` as number"))))
+        .collect::<Result<_, _>>()?;
+
+    for inst in instructions {
+        println!("Variable store is: {reg_store:?}");
+        match inst {
+            Inst::Add(a, b) => {
+                let a = check_store_contains(&reg_store, a)?;
+                check_store_contains(&reg_store, b)?;
+                reg_store.get_mut(&b).map(|b| *b = a + *b);
+            }
+            Inst::Sub(a, b) => {
+                let a = check_store_contains(&reg_store, a)?;
+                check_store_contains(&reg_store, b)?;
+                reg_store.get_mut(&b).map(|b| *b = a - *b);
+            }
+            Inst::Mul(a, b) => {
+                let a = check_store_contains(&reg_store, a)?;
+                check_store_contains(&reg_store, b)?;
+                reg_store.get_mut(&b).map(|b| *b = a * *b);
+            }
+            Inst::Div(a, b) => {
+                let a = check_store_contains(&reg_store, a)?;
+                check_store_contains(&reg_store, b)?;
+                reg_store.get_mut(&b).map(|b| *b = a / *b);
+            }
+            Inst::Store(n, reg) => if reg_store.contains_key(&reg) {
+                reg_store.get_mut(&reg).map(|_| n);
+            } else {
+                reg_store.insert(reg, n);
+            }
+            Inst::Transfer(v, reg) => {}
+            Inst::Result(r) => {
+                return Ok(*reg_store.get(&r).ok_or(LpErr::Interpret(format!("register `{}` is empty", r)))?);
+            }
+        }
+    }
+    Err(LpErr::Interpret("no result found".to_string()))
+}
+
+fn check_store_contains(store: &HashMap<Reg, i32>, key: Reg) -> Result<i32, LpErr> {
+    match store.get(&key) {
+        Some(v) => Ok(*v),
+        None => Err(LpErr::Interpret(format!("no such reg `{}`", key))),
     }
 }
 
