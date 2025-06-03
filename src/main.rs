@@ -1,6 +1,7 @@
 mod app;
 mod gui;
 mod compiler;
+mod types;
 
 use crate::app::LndwApp;
 

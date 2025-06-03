@@ -1,106 +1,11 @@
-use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
+use std::collections::{HashMap, HashSet};
+use std::ops::{Add, Div, Mul, Sub};
 use std::vec;
 
-#[derive(Debug)]
-pub enum LpErr {
-    SExpr(String),
-    Parse(String),
-    IR(String),
-    Interpret(String),
-}
+pub use crate::types::*;
 
-impl Display for LpErr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LpErr::SExpr(e) => write!(f, "{} (s-expr)", e),
-            LpErr::Parse(e) => write!(f, "{} (parse)", e),
-            LpErr::IR(e) => write!(f, "{} (ir gen)", e),
-            LpErr::Interpret(e) => write!(f, "{} (interpreter)", e),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum Operator {
-    Add,
-    Sub,
-    Mul,
-    Div
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-enum Token {
-    /// Opening parenthesis `(`.
-    Open,
-    /// Closing parenthesis `)`.
-    Close,
-    /// Any symbol, e.g. `1`, `a`, `+`, `asdf`, `_#z1+`, that is not a parenthesis.
-    Sym(String),
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-enum SExpr {
-    Sym(String),
-    List(Vec<SExpr>),
-}
-
-impl Display for SExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SExpr::Sym(e) => write!(f, "{}", e),
-            SExpr::List(es) => {
-                write!(f, "(")?;
-                for (count, v) in es.iter().enumerate() {
-                    if count != 0 { write!(f, " ")?; }
-                    write!(f, "{}", v)?;
-                }
-                write!(f, ")")
-            }
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-enum Expr {
-    Num(i32),
-    Var(String),
-    BinaryOp {
-        left: Box<Expr>,
-        op: Operator,
-        right: Box<Expr>,
-    },
-}
-
-pub type Reg = u8;
-
-#[derive(Debug, Clone)]
-pub enum Inst {
-    Add(Reg, Reg),
-    Sub(Reg, Reg),
-    Mul(Reg, Reg),
-    Div(Reg, Reg),
-    Store(i32, Reg),
-    Transfer(String, Reg),
-    Result(Reg),
-}
-
-impl Display for Inst {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Inst::Add(a, b) => write!(f, "add register {a} to register {b}"),
-            Inst::Sub(a, b) => write!(f, "subtract register {a} from register {b}"),
-            Inst::Mul(a, b) => write!(f, "multiply register {a} by register {b}"),
-            Inst::Div(a, b) => write!(f, "divide register {a} by register {b}"),
-            Inst::Store(n, r) => write!(f, "store the number {n} in register {r}"),
-            Inst::Transfer(v, r) => write!(f, "transfer variable {v} to register {r}"),
-            Inst::Result(r) => write!(f, "the result is in register {r}"),
-        }
-    }
-}
-
-pub fn compile(input: &String) -> Result<(Vec<Inst>, HashMap<String, Reg>), LpErr> {
-    let ast = parse_expr(&parse_sexpr(&mut tokenize(format!("({})", input)))?)?;
+pub fn compile(input: &String) -> Result<(Vec<Inst>, HashSet<String>), LpErr> {
+    let ast = parse_expr(&parse_sexpr(tokenize(format!("({})", input)))?)?;
     generate_ir(&ast)
 }
 
@@ -116,12 +21,23 @@ fn tokenize(expr: impl Into<String>) -> Vec<Token> {
         .collect::<Vec<Token>>()
 }
 
-fn parse_sexpr(tokens: &mut Vec<Token>) -> Result<SExpr, LpErr> {
+/// Parse a list of tokens into an s-expression 'tree'. If parentheses are unmatched, this function
+/// returns an error.
+fn parse_sexpr(mut tokens: Vec<Token>) -> Result<SExpr, LpErr> {
+    let result = parse_sexpr_(&mut tokens)?;
+    if tokens.is_empty() {
+        Ok(result)
+    } else {
+        Err(LpErr::SExpr(format!("leftover tokens: `{tokens:?}`")))
+    }
+}
+
+fn parse_sexpr_(tokens: &mut Vec<Token>) -> Result<SExpr, LpErr> {
     match tokens.remove(0) {
         Token::Open => {
             let mut list = Vec::new();
             while !matches!(tokens.first(), Some(Token::Close)) {
-                list.push(parse_sexpr(tokens)?);
+                list.push(parse_sexpr_(tokens)?);
                 if tokens.is_empty() {
                     return Err(LpErr::SExpr("unclosed list".to_string()));
                 }
@@ -134,6 +50,8 @@ fn parse_sexpr(tokens: &mut Vec<Token>) -> Result<SExpr, LpErr> {
     }
 }
 
+/// Parse an s-expression into an expression tree. Checks for symbol name legality, tries to parse
+/// numbers, and extracts valid unary and binary operations.
 fn parse_expr(sexpr: &SExpr) -> Result<Expr, LpErr> {
     match sexpr {
         SExpr::Sym(s) => match s.as_str() {
@@ -145,11 +63,8 @@ fn parse_expr(sexpr: &SExpr) -> Result<Expr, LpErr> {
         }
         SExpr::List(es) => match es.as_slice() {
             [e @ SExpr::List(..)] => parse_expr(e),
-            [a, SExpr::Sym(op), b] => Ok(Expr::BinaryOp {
-                left: Box::new(parse_expr(a)?),
-                op: parse_op(op)?,
-                right: Box::new(parse_expr(b)?),
-            }),
+            [SExpr::Sym(op), e] => Ok(Expr::UnaryOp(parse_op(op)?, Box::new(parse_expr(e)?))),
+            [a, SExpr::Sym(op), b] => Ok(Expr::BinaryOp(Box::new(parse_expr(a)?), parse_op(op)?, Box::new(parse_expr(b)?))),
             es if es.len() == 4 => Err(LpErr::Parse(format!("`{}` is not a legal expression: too many symbols", sexpr))),
             [a, op @ SExpr::Sym(..), b, ts @ ..] => {
                 // Try to parse e.g. (a <op> b + 3 ...) into ((a <op> b) + 3 ...)
@@ -157,7 +72,7 @@ fn parse_expr(sexpr: &SExpr) -> Result<Expr, LpErr> {
                 tmp.extend_from_slice(ts);
                 parse_expr(&SExpr::List(tmp))
             },
-            _ => Err(LpErr::Parse(format!("`{}` is not a legal expression: second entry must be an op", sexpr))),
+            _ => Err(LpErr::Parse(format!("`{}` is not a legal expression", sexpr))),
         }
     }
 }
@@ -172,40 +87,51 @@ fn parse_op(op: &String) -> Result<Operator, LpErr> {
     }
 }
 
-fn generate_ir(ast: &Expr) -> Result<(Vec<Inst>, HashMap<String, Reg>), LpErr> {
+fn generate_ir(ast: &Expr) -> Result<(Vec<Inst>, HashSet<String>), LpErr> {
     let mut reg_counter = 0;
     let mut code: Vec<Inst> = vec![];
-    let mut variables = HashMap::new();
+    let mut variables = HashSet::new();
 
     let result_reg = ast_to_ir(ast, &mut reg_counter, &mut code, &mut variables)?;
-    code.push(Inst::Result(result_reg));
+    code.push(Inst::Result(u8tochar(result_reg)));
     Ok((code, variables))
 }
 
-fn ast_to_ir(ast: &Expr, next_reg: &mut u8, code: &mut Vec<Inst>, variables: &mut HashMap<String, Reg>) -> Result<u8, LpErr> {
+fn u8tochar(reg: u8) -> char {
+    char::from_digit(reg as u32 + 10, 36).unwrap()
+}
+
+fn ast_to_ir(ast: &Expr, next_reg: &mut u8, code: &mut Vec<Inst>, variables: &mut HashSet<String>) -> Result<u8, LpErr> {
     match ast {
         Expr::Num(n) => {
             let reg = *next_reg;
-            code.push(Inst::Store(*n, reg));
+            code.push(Inst::Store(*n, u8tochar(reg)));
             *next_reg += 1;
             Ok(reg)
         }
         Expr::Var(v) => {
             let reg = *next_reg; // TODO: avoid duplicate register mapping+transfer
-            code.push(Inst::Transfer(v.clone(), reg));
-            variables.insert(v.clone(), reg);
+            code.push(Inst::Transfer(v.clone(), u8tochar(reg)));
+            variables.insert(v.clone());
             *next_reg += 1;
             Ok(reg)
         }
-        Expr::BinaryOp { left, op, right } => {
+        Expr::UnaryOp(Operator::Sub, e) => {
+            let left_reg = ast_to_ir(&Expr::Num(0), next_reg, code, variables)?;
+            let right_reg = ast_to_ir(e, next_reg, code, variables)?;
+            code.push(Inst::Sub(u8tochar(left_reg), u8tochar(right_reg)));
+            Ok(right_reg)
+        }
+        Expr::UnaryOp(op, _) => Err(LpErr::IR(format!("invalid unary operator `{op}`"))),
+        Expr::BinaryOp(left, op, right) => {
             let left_reg = ast_to_ir(left, next_reg, code, variables)?;
             let right_reg = ast_to_ir(right, next_reg, code, variables)?;
 
             let inst = match op {
-                Operator::Add => Inst::Add(left_reg, right_reg),
-                Operator::Sub => Inst::Sub(left_reg, right_reg),
-                Operator::Mul => Inst::Mul(left_reg, right_reg),
-                Operator::Div => Inst::Div(left_reg, right_reg),
+                Operator::Add => Inst::Add(u8tochar(left_reg), u8tochar(right_reg)),
+                Operator::Sub => Inst::Sub(u8tochar(left_reg), u8tochar(right_reg)),
+                Operator::Mul => Inst::Mul(u8tochar(left_reg), u8tochar(right_reg)),
+                Operator::Div => Inst::Div(u8tochar(left_reg), u8tochar(right_reg)),
             };
 
             code.push(inst);
@@ -214,46 +140,40 @@ fn ast_to_ir(ast: &Expr, next_reg: &mut u8, code: &mut Vec<Inst>, variables: &mu
     }
 }
 
-pub fn interpret_ir(instructions: Vec<Inst>, variable_mapping: &HashMap<String, (Reg, String)>) -> Result<i32, LpErr> {
-    let mut reg_store: HashMap<Reg, i32> = variable_mapping.iter()
-        .map(|(var, (reg, val))| val.parse::<i32>().map(|v| (*reg, v)).map_err(|_| LpErr::Interpret(format!("couldn't interpret `{val}` as number"))))
-        .collect::<Result<_, _>>()?;
+pub fn interpret_ir(instructions: Vec<Inst>, input_variables: &HashMap<String, String>) -> Result<i32, LpErr> {
+    let mut reg_store = HashMap::<Reg, i32>::new();
 
     for inst in instructions {
         println!("Variable store is: {reg_store:?}");
         match inst {
-            Inst::Add(a, b) => {
-                let a = check_store_contains(&reg_store, a)?;
-                check_store_contains(&reg_store, b)?;
-                reg_store.get_mut(&b).map(|b| *b = a + *b);
-            }
-            Inst::Sub(a, b) => {
-                let a = check_store_contains(&reg_store, a)?;
-                check_store_contains(&reg_store, b)?;
-                reg_store.get_mut(&b).map(|b| *b = a - *b);
-            }
-            Inst::Mul(a, b) => {
-                let a = check_store_contains(&reg_store, a)?;
-                check_store_contains(&reg_store, b)?;
-                reg_store.get_mut(&b).map(|b| *b = a * *b);
-            }
-            Inst::Div(a, b) => {
-                let a = check_store_contains(&reg_store, a)?;
-                check_store_contains(&reg_store, b)?;
-                reg_store.get_mut(&b).map(|b| *b = a / *b);
-            }
+            Inst::Add(a, b) => run_binop(a, b, i32::add, &mut reg_store)?,
+            Inst::Sub(a, b) => run_binop(a, b, i32::sub, &mut reg_store)?,
+            Inst::Mul(a, b) => run_binop(a, b, i32::mul, &mut reg_store)?,
+            Inst::Div(a, b) => run_binop(a, b, i32::div, &mut reg_store)?,
             Inst::Store(n, reg) => if reg_store.contains_key(&reg) {
-                reg_store.get_mut(&reg).map(|_| n);
+                eprintln!("Warning: overwriting register `{reg}`.");
+                reg_store.get_mut(&reg).map(|v| *v = n);
             } else {
                 reg_store.insert(reg, n);
             }
-            Inst::Transfer(v, reg) => {}
-            Inst::Result(r) => {
-                return Ok(*reg_store.get(&r).ok_or(LpErr::Interpret(format!("register `{}` is empty", r)))?);
+            Inst::Transfer(v, _) if !input_variables.contains_key(&v) => return Err(LpErr::Interpret(format!("unknown variable `{v}`"))),
+            Inst::Transfer(_, r) if reg_store.contains_key(&r) => return Err(LpErr::Interpret(format!("register `{r}` already contains value"))),
+            Inst::Transfer(var, reg) => {
+                let val_str = input_variables[&var].clone();
+                let val = val_str.parse::<i32>().map_err(|_| LpErr::Interpret(format!("`{val_str}` is not a number")))?;
+                reg_store.insert(reg, val);
             }
+            Inst::Result(r) => return Ok(*reg_store.get(&r).ok_or(LpErr::Interpret(format!("register `{}` is empty", r)))?),
         }
     }
     Err(LpErr::Interpret("no result found".to_string()))
+}
+
+fn run_binop(a: Reg, b: Reg, op: impl FnOnce(i32, i32) -> i32, reg_store: &mut HashMap<Reg, i32>) -> Result<(), LpErr> {
+    let a = check_store_contains(reg_store, a)?;
+    check_store_contains(reg_store, b)?;
+    reg_store.get_mut(&b).map(|b| *b = op(a, *b));
+    Ok(())
 }
 
 fn check_store_contains(store: &HashMap<Reg, i32>, key: Reg) -> Result<i32, LpErr> {
@@ -284,18 +204,17 @@ mod test {
         let input1 = "(1 + 2)";
         let input2 = "(1 + a)";
 
-        let sexpr = parse_sexpr(&mut tokenize(input1))?;
+        let sexpr = parse_sexpr(tokenize(input1))?;
         assert_eq!(sexpr, List(vec![Sym("1".to_string()), Sym("+".to_string()), Sym("2".to_string())]));
 
-        let sexpr = parse_sexpr(&mut tokenize(input2))?;
+        let sexpr = parse_sexpr(tokenize(input2))?;
         assert_eq!(sexpr, List(vec![Sym("1".to_string()), Sym("+".to_string()), Sym("a".to_string())]));
         Ok(())
     }
 
     #[test]
     fn parse_complex_sexpr() -> Result<(), LpErr> {
-        let mut tokens = tokenize("((1 + 2) asdf :: (a b c))");
-        let sexpr = parse_sexpr(&mut tokens)?;
+        let sexpr = parse_sexpr(tokenize("((1 + 2) asdf :: (a b c))"))?;
 
         assert_eq!(sexpr, List(vec![
             List(vec![Sym("1".to_string()), Sym("+".to_string()), Sym("2".to_string())]),
@@ -305,93 +224,78 @@ mod test {
         ]));
         Ok(())
     }
+    
+    #[test]
+    fn parse_invalid_sexpr() -> Result<(), LpErr> {
+        let input1 = "((1 + 1)";
+        let input2 = "(1 + 1))";
+
+        assert!(parse_sexpr(tokenize(input1)).is_err());
+        assert!(parse_sexpr(tokenize(input2)).is_err());
+        Ok(())
+    }
 
     #[test]
     fn parse_simple_expr() -> Result<(), LpErr> {
-        let mut tokens = tokenize("(1 + 2)");
-        let expr = parse_expr(&parse_sexpr(&mut tokens)?)?;
+        let expr = parse_expr(&parse_sexpr(tokenize("(1 + 2)"))?)?;
 
-        assert_eq!(expr, Expr::BinaryOp {
-            left: Box::new(Expr::Num(1)),
-            op: Operator::Add,
-            right: Box::new(Expr::Num(2)),
-        });
+        assert_eq!(expr, Expr::BinaryOp(Box::new(Expr::Num(1)), Operator::Add, Box::new(Expr::Num(2))));
         Ok(())
     }
 
     #[test]
     fn parse_simple_sym() -> Result<(), LpErr> {
-        let mut tokens = tokenize("(1 + a)");
-        let expr = parse_expr(&parse_sexpr(&mut tokens)?)?;
+        let expr = parse_expr(&parse_sexpr(tokenize("(1 + a)"))?)?;
 
-        assert_eq!(expr, Expr::BinaryOp {
-            left: Box::new(Expr::Num(1)),
-            op: Operator::Add,
-            right: Box::new(Expr::Var("a".to_string())),
-        });
+        assert_eq!(expr, Expr::BinaryOp(Box::new(Expr::Num(1)), Operator::Add, Box::new(Expr::Var("a".to_string()))));
         Ok(())
     }
 
     #[test]
     fn parse_nested_parens() -> Result<(), LpErr> {
-        let mut tokens = tokenize("((((1 + 2))))");
-        let expr = parse_expr(&parse_sexpr(&mut tokens)?)?;
+        let expr = parse_expr(&parse_sexpr(tokenize("((((1 + 2))))"))?)?;
 
-        assert_eq!(expr, Expr::BinaryOp {
-            left: Box::new(Expr::Num(1)),
-            op: Operator::Add,
-            right: Box::new(Expr::Num(2)),
-        });
+        assert_eq!(expr, Expr::BinaryOp(Box::new(Expr::Num(1)), Operator::Add, Box::new(Expr::Num(2))));
         Ok(())
     }
 
     #[test]
     fn parse_invalid_expr() -> Result<(), LpErr> {
-        let input1 = "(1 + 2+)";
-        let input2 = "(1 + +2)";
-        let input3 = "(1 + a/b)";
-        let input4 = "(1 + *)";
-        let input5 = "(1 1 1)";
-        let input6 = "(1 (1) 1)";
-        let input7 = "(1 + 1 1)";
-
-        assert!(parse_expr(&parse_sexpr(&mut tokenize(input1))?).is_err());
-        assert!(parse_expr(&parse_sexpr(&mut tokenize(input2))?).is_err());
-        assert!(parse_expr(&parse_sexpr(&mut tokenize(input3))?).is_err());
-        assert!(parse_expr(&parse_sexpr(&mut tokenize(input4))?).is_err());
-        assert!(parse_expr(&parse_sexpr(&mut tokenize(input5))?).is_err());
-        assert!(parse_expr(&parse_sexpr(&mut tokenize(input6))?).is_err());
-        assert!(parse_expr(&parse_sexpr(&mut tokenize(input7))?).is_err());
+        let inputs = vec![
+            "(1 + 2+)",
+            "(1 + +2)",
+            "(1 + a/b)",
+            "(1 + *)",
+            "(1 1 1)",
+            "(1 (1) 1)",
+            "(1 + 1 1)",
+        ];
+        
+        for input in inputs {
+            assert!(parse_expr(&parse_sexpr(tokenize(input))?).is_err(), "`{input}` should fail");
+        }
         Ok(())
     }
 
     #[test]
     fn parse_nested_1() -> Result<(), LpErr> {
-        let mut tokens = tokenize("(1 + (2 * 3))");
-        let expr = parse_expr(&parse_sexpr(&mut tokens)?)?;
+        let expr = parse_expr(&parse_sexpr(tokenize("(1 + (2 * 3))"))?)?;
 
-        assert_eq!(expr, Expr::BinaryOp {
-            left: Box::new(Expr::Num(1)),
-            op: Operator::Add,
-            right: Box::new(Expr::BinaryOp {
-                left: Box::new(Expr::Num(2)), op: Operator::Mul, right: Box::new(Expr::Num(3))
-            }),
-        });
+        assert_eq!(expr, Expr::BinaryOp(
+            Box::new(Expr::Num(1)),
+            Operator::Add,
+            Box::new(Expr::BinaryOp(Box::new(Expr::Num(2)), Operator::Mul, Box::new(Expr::Num(3))))));
         Ok(())
     }
 
     #[test]
     fn parse_nested_2() -> Result<(), LpErr> {
-        let mut tokens = tokenize("((1 + 2) * 3))");
-        let expr = parse_expr(&parse_sexpr(&mut tokens)?)?;
+        let expr = parse_expr(&parse_sexpr(tokenize("((1 + 2) * 3)"))?)?;
 
-        assert_eq!(expr, Expr::BinaryOp {
-            left: Box::new(Expr::BinaryOp {
-                left: Box::new(Expr::Num(1)), op: Operator::Add, right: Box::new(Expr::Num(2))
-            }),
-            op: Operator::Mul,
-            right: Box::new(Expr::Num(3)),
-        });
+        assert_eq!(expr, Expr::BinaryOp(
+            Box::new(Expr::BinaryOp(Box::new(Expr::Num(1)), Operator::Add, Box::new(Expr::Num(2)))),
+            Operator::Mul,
+            Box::new(Expr::Num(3))));
         Ok(())
     }
 }
