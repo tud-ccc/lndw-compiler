@@ -2,7 +2,7 @@ use eframe::egui;
 
 pub struct CodeEditor {
     pub code: String,
-    do_constant_folding: bool,
+    pub do_constant_folding: bool,
 }
 
 impl Default for CodeEditor {
@@ -32,7 +32,7 @@ impl CodeEditor {
                     .code_editor()
                     .desired_rows(10)
                     .lock_focus(true)
-                    .desired_width(f32::INFINITY)
+                    .desired_width(f32::INFINITY),
             );
         });
     }

@@ -42,7 +42,9 @@ impl Display for SExpr {
             SExpr::List(es) => {
                 write!(f, "(")?;
                 for (count, v) in es.iter().enumerate() {
-                    if count != 0 { write!(f, " ")?; }
+                    if count != 0 {
+                        write!(f, " ")?;
+                    }
                     write!(f, "{}", v)?;
                 }
                 write!(f, ")")
@@ -56,7 +58,7 @@ pub enum Operator {
     Add,
     Sub,
     Mul,
-    Div
+    Div,
 }
 
 impl Display for Operator {
@@ -70,12 +72,25 @@ impl Display for Operator {
     }
 }
 
+/// The main AST struct for representing the IR.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Expr {
     Num(i32),
     Var(String),
     UnaryOp(Operator, Box<Expr>),
     BinaryOp(Box<Expr>, Operator, Box<Expr>),
+}
+
+impl Expr {
+    pub fn is_num(&self) -> bool {
+        matches!(self, Expr::Num { .. })
+    }
+}
+
+impl From<i32> for Expr {
+    fn from(value: i32) -> Self {
+        Expr::Num(value)
+    }
 }
 
 pub type Reg = char;
