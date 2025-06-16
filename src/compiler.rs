@@ -8,7 +8,7 @@ pub use crate::types::*;
 pub fn compile(input: &String, constant_fold: bool) -> Result<(Vec<Inst>, HashSet<String>), LpErr> {
     let mut ast = parse_expr(&parse_sexpr(tokenize(format!("({})", input)))?)?;
     if constant_fold {
-        ast.run_constant_fold();
+        ast = ast.run_constant_fold();
     }
 
     generate_ir(&ast)
