@@ -1,6 +1,7 @@
 mod app;
 mod compiler;
 mod gui;
+mod parser;
 mod passes;
 mod types;
 
