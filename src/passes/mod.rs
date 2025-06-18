@@ -8,7 +8,6 @@ pub trait ConstantFold {
 
 impl ConstantFold for Expr {
     fn run_constant_fold(self) -> Self {
-        println!("{self:?}");
         match self {
             Expr::Num(_) | Expr::Var(_) =>
             /* no work to be done */

@@ -21,10 +21,6 @@ impl CodeEditor {
             ui.label("You can write your expressions in this TextEdit box.");
         });
 
-        ui.horizontal(|ui| {
-            ui.checkbox(&mut self.do_constant_folding, "Constant folding");
-        });
-
         egui::ScrollArea::vertical().show(ui, |ui| {
             ui.add(
                 egui::TextEdit::multiline(&mut self.code)
@@ -34,6 +30,10 @@ impl CodeEditor {
                     .lock_focus(true)
                     .desired_width(f32::INFINITY),
             );
+        });
+
+        ui.horizontal(|ui| {
+            ui.checkbox(&mut self.do_constant_folding, "Constant folding");
         });
     }
 }
