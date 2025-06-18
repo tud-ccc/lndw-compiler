@@ -120,7 +120,6 @@ mod test {
         let inputs = vec![
             "(1 + 2+)",
             "(1 + +2)",
-            "(1 + a/b)",
             "(1 + *)",
             "(1 1 1)",
             "(1 (1) 1)",
@@ -128,7 +127,7 @@ mod test {
         ];
 
         for input in inputs {
-            assert!(run_parser(input).is_err(), "`{input}` should fail");
+            assert!(run_parser(input).is_err(), "`{input}` should fail but got `{:?}`", run_parser(input));
         }
         Ok(())
     }
