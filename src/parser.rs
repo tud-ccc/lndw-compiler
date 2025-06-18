@@ -56,13 +56,13 @@ fn parse_expr<'a>() -> impl Parser<'a, &'a str, Expr> {
                 Expr::BinaryOp(Box::new(lhs), op, Box::new(rhs))
             });
 
-        let sum = product
+        
+
+        product
             .clone()
             .foldl(add_op.then(product).repeated(), |lhs, (op, rhs)| {
                 Expr::BinaryOp(Box::new(lhs), op, Box::new(rhs))
-            });
-
-        sum
+            })
     })
 }
 

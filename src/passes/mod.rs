@@ -21,11 +21,10 @@ impl ConstantFold for Expr {
                     *expr
                 };
 
-                if let Expr::Num(n) = e {
-                    if operator == Operator::Sub {
+                if let Expr::Num(n) = e
+                    && operator == Operator::Sub {
                         return Expr::Num(n.neg());
                     }
-                }
 
                 Expr::UnaryOp(operator, Box::new(e))
             }
@@ -42,8 +41,8 @@ impl ConstantFold for Expr {
                     *rhs
                 };
 
-                if let Expr::Num(left) = l {
-                    if let Expr::Num(right) = r {
+                if let Expr::Num(left) = l
+                    && let Expr::Num(right) = r {
                         let res = match operator {
                             Operator::Add => left + right,
                             Operator::Sub => left - right,
@@ -52,7 +51,6 @@ impl ConstantFold for Expr {
                         };
                         return res.into();
                     }
-                }
 
                 Expr::BinaryOp(Box::new(l), operator, Box::new(r))
             }

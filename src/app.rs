@@ -18,7 +18,7 @@ impl LndwApp {
         cc.egui_ctx.set_zoom_factor(1.5);
 
         cc.egui_ctx.add_font(FontInsert::new(
-            "Iosevka Term Regular".into(),
+            "Iosevka Term Regular",
             FontData::from_static(include_bytes!("../assets/IosevkaTerm-Regular.ttf")),
             vec![InsertFontFamily {
                 family: FontFamily::Monospace,
@@ -59,11 +59,12 @@ impl eframe::App for LndwApp {
 
             if ui.button("Compile!").clicked() {
                 if let Ok(vars) = self.asm_unoptimized.compile(&self.code_editor.code, false) {
-                    self.input_variables = vars.iter().map(|s| (s.clone(), String::new())).collect();
+                    self.input_variables =
+                        vars.iter().map(|s| (s.clone(), String::new())).collect();
                 } else {
                     self.input_variables.clear();
                 }
-                
+
                 if self.code_editor.do_constant_folding {
                     // TODO: consider what to do with vars & any errors.
                     let _ = self.asm_optimized.compile(&self.code_editor.code, true);
@@ -90,7 +91,7 @@ impl eframe::App for LndwApp {
             if let Some(result) = &self.result {
                 ui.label(format!("Result: {result}"));
             }
-            
+
             if ui.button("Clear").clicked() {
                 self.asm_unoptimized.clear();
                 self.asm_optimized.clear();

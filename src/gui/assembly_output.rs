@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use crate::compiler::{Inst, compile, interpret_ir};
 use eframe::egui;
-use crate::compiler::{compile, interpret_ir, Inst};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 pub struct AssemblyOutput {
@@ -21,6 +21,7 @@ impl AssemblyOutput {
         }
     }
 
+    #[allow(dead_code)]
     pub fn new(heading: String, asm: Vec<Inst>) -> Self {
         Self {
             heading,
@@ -28,7 +29,7 @@ impl AssemblyOutput {
             ..Default::default()
         }
     }
-    
+
     /// Clear any assembly and error message.
     pub fn clear(&mut self) {
         self.asm = None;
@@ -37,31 +38,33 @@ impl AssemblyOutput {
         self.running = false;
         self.total_time = 0.0;
     }
-    
+
     pub fn instructions(&self) -> Vec<&Inst> {
-        self.asm.as_ref().map_or(vec![], 
-                                 |v| v.iter().map(|(inst, _)| inst).collect())
+        self.asm
+            .as_ref()
+            .map_or(vec![], |v| v.iter().map(|(inst, _)| inst).collect())
     }
-    
-    pub fn compile(&mut self, input: &String, constant_fold: bool) -> Result<HashSet<String>, ()> {
+
+    pub fn compile(&mut self, input: &str, constant_fold: bool) -> Result<HashSet<String>, ()> {
         self.clear();
         let r = compile(input, constant_fold);
 
         r.map(|(asm, vars)| {
             self.asm = Some(asm.iter().map(|i| (i.clone(), 0.0)).collect());
             vars
-        }).map_err(|e| {
+        })
+        .map_err(|e| {
             self.error = Some(format!("Compile error: {e}"));
         })
     }
-    
+
     pub fn run(&mut self, vars: &HashMap<String, String>) {
         self.program_result = None;
         match interpret_ir(self.instructions(), vars) {
             Ok(r) => {
                 self.program_result = Some(r);
                 self.running = true;
-            },
+            }
             Err(e) => self.error = Some(format!("Runtime error: {e}")),
         }
     }
@@ -76,13 +79,13 @@ impl AssemblyOutput {
             ui.colored_label(egui::Color32::RED, "Error:");
             ui.colored_label(egui::Color32::RED, error);
             return;
-        } 
-        
+        }
+
         if self.asm.is_none() {
             ui.label("Assembly output will be here");
             return;
         }
-        
+
         let asm = self.asm.as_mut().unwrap();
         let mut done = false;
         if self.running {

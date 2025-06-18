@@ -10,9 +10,9 @@ pub enum LpErr {
 impl Display for LpErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            LpErr::Parse(e) => write!(f, "{} (parse)", e),
-            LpErr::IR(e) => write!(f, "{} (ir gen)", e),
-            LpErr::Interpret(e) => write!(f, "{} (interpreter)", e),
+            LpErr::Parse(e) => write!(f, "{e} (parse)"),
+            LpErr::IR(e) => write!(f, "{e} (ir gen)"),
+            LpErr::Interpret(e) => write!(f, "{e} (interpreter)"),
         }
     }
 }

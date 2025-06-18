@@ -236,7 +236,7 @@ pub fn interpret_ir(
     input_variables: &HashMap<String, String>,
 ) -> Result<i32, LpErr> {
     let mut reg_store = HashMap::<Reg, i32>::new();
-    let mut ram = vec![0; RAM_SIZE];
+    let mut ram = [0; RAM_SIZE];
 
     for inst in instructions {
         println!("Variable store is: {reg_store:?}");
@@ -246,9 +246,11 @@ pub fn interpret_ir(
             Inst::Mul(a, b) => run_binop(*a, *b, i32::mul, &mut reg_store)?,
             Inst::Div(a, b) => run_binop(*a, *b, i32::div, &mut reg_store)?,
             Inst::Store(n, reg) => {
-                if reg_store.contains_key(&reg) {
+                if reg_store.contains_key(reg) {
                     eprintln!("Warning: overwriting register `{reg}`.");
-                    reg_store.get_mut(&reg).map(|v| *v = *n);
+                    if let Some(v) = reg_store.get_mut(reg) {
+                        *v = *n;
+                    }
                 } else {
                     reg_store.insert(*reg, *n);
                 }
@@ -256,7 +258,7 @@ pub fn interpret_ir(
             Inst::Transfer(v, _) if !input_variables.contains_key(v) => {
                 return Err(LpErr::Interpret(format!("unknown variable `{v}`")));
             }
-            Inst::Transfer(_, r) if reg_store.contains_key(&r) => {
+            Inst::Transfer(_, r) if reg_store.contains_key(r) => {
                 return Err(LpErr::Interpret(format!(
                     "register `{r}` already contains value"
                 )));
@@ -270,8 +272,8 @@ pub fn interpret_ir(
             }
             Inst::Result(r) => {
                 return Ok(*reg_store
-                    .get(&r)
-                    .ok_or(LpErr::Interpret(format!("register `{}` is empty", r)))?);
+                    .get(r)
+                    .ok_or(LpErr::Interpret(format!("register `{r}` is empty")))?);
             }
             Inst::Write(_, addr) | Inst::Load(addr, _) if addr >= &ram.len() => {
                 return Err(LpErr::Interpret(format!(
@@ -279,7 +281,7 @@ pub fn interpret_ir(
                 )));
             }
             Inst::Write(r, addr) => {
-                if let Some(val) = reg_store.get(&r) {
+                if let Some(val) = reg_store.get(r) {
                     ram[*addr] = *val;
                 } else {
                     return Err(LpErr::Interpret(format!("register `{r}` is empty")));
@@ -304,13 +306,15 @@ fn run_binop(
 ) -> Result<(), LpErr> {
     let a = check_store_contains(reg_store, a)?;
     check_store_contains(reg_store, b)?;
-    reg_store.get_mut(&b).map(|b| *b = op(a, *b));
+    if let Some(b) = reg_store.get_mut(&b) {
+        *b = op(a, *b);
+    }
     Ok(())
 }
 
 fn check_store_contains(store: &HashMap<Reg, i32>, key: Reg) -> Result<i32, LpErr> {
     match store.get(&key) {
         Some(v) => Ok(*v),
-        None => Err(LpErr::Interpret(format!("no such reg `{}`", key))),
+        None => Err(LpErr::Interpret(format!("no such reg `{key}`"))),
     }
 }
