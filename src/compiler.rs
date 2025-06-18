@@ -5,6 +5,7 @@ use std::vec;
 use crate::parser;
 use crate::passes::ConstantFold;
 pub use crate::types::*;
+use crate::{RAM_SIZE, REGISTER_COUNT};
 
 pub fn compile(input: &str, constant_fold: bool) -> Result<(Vec<Inst>, HashSet<String>), LpErr> {
     let mut ast = parser::run_parser(input)?;
@@ -17,10 +18,22 @@ pub fn compile(input: &str, constant_fold: bool) -> Result<(Vec<Inst>, HashSet<S
 
 fn generate_ir(ast: &Expr) -> Result<(Vec<Inst>, HashSet<String>), LpErr> {
     let mut reg_counter = 0;
+    let mut ram_idx = 0;
     let mut code: Vec<Inst> = vec![];
     let mut variables = HashSet::new();
 
-    let result_reg = ast_to_ir(ast, &mut reg_counter, &mut code, &mut variables)?;
+    let mut mmap = HashMap::new();
+    let mut rmap = HashMap::new();
+
+    let result_reg = ast_to_ir(
+        ast,
+        &mut reg_counter,
+        &mut ram_idx,
+        &mut code,
+        &mut variables,
+        &mut mmap,
+        &mut rmap,
+    )?;
     code.push(Inst::Result(u8tochar(result_reg)));
     Ok((code, variables))
 }
@@ -29,36 +42,167 @@ fn u8tochar(reg: u8) -> char {
     char::from_digit(reg as u32 + 10, 36).unwrap()
 }
 
-fn ast_to_ir(
-    ast: &Expr,
+/// Describes a memory address either as register or RAM address
+pub enum Location {
+    Ram(MemAddr),
+    Reg(u8),
+}
+
+fn create_write<'a>(
+    exp: &'a Expr,
+    ram_idx: &mut usize,
+    code: &mut Vec<Inst>,
+    mmap: &mut HashMap<&'a Expr, Location>,
+) {
+    if let Some(val) = mmap.get_mut(exp) {
+        if let Location::Reg(r) = val {
+            code.push(Inst::Write(u8tochar(*r), *ram_idx));
+            *val = Location::Ram(*ram_idx);
+            *ram_idx = (*ram_idx + 1) % RAM_SIZE;
+            if *ram_idx == 0 {
+                eprintln!("RAM overrun detected");
+            }
+        } else {
+            eprintln!("tried to push RAM to RAM??");
+        }
+    } else {
+        eprintln!("tried to create write for non-existent expression?");
+    }
+}
+
+fn create_load<'a>(
+    exp: &'a Expr,
+    target_reg: &mut u8,
+    code: &mut Vec<Inst>,
+    mmap: &mut HashMap<&'a Expr, Location>,
+) {
+    if let Some(val) = mmap.get_mut(exp) {
+        if let Location::Ram(r) = val {
+            code.push(Inst::Load(*r, u8tochar(*target_reg)));
+            *val = Location::Reg(*target_reg);
+            *target_reg = (*target_reg + 1) % REGISTER_COUNT;
+        } else {
+            eprintln!("tried to load register to register??");
+        }
+    } else {
+        eprintln!("tried to create load for non-existent expression?");
+    }
+}
+
+fn fetch_if_necessary<'a>(
+    cur_reg: &mut u8,
+    e: &'a Expr,
     next_reg: &mut u8,
+    ram_idx: &mut usize,
+    code: &mut Vec<Inst>,
+    mmap: &mut HashMap<&'a Expr, Location>,
+    rmap: &mut HashMap<u8, &'a Expr>,
+) {
+    if *rmap.get(cur_reg).unwrap() != e {
+        // the entry was evicted -> need a store (maybe) & load
+        rmap.entry(*next_reg)
+            .and_modify(|expr| {
+                create_write(expr, ram_idx, code, mmap);
+                *expr = e;
+            })
+            .or_insert(e);
+
+        *cur_reg = *next_reg;
+        create_load(e, next_reg, code, mmap);
+    }
+}
+
+fn ast_to_ir<'a>(
+    ast: &'a Expr,
+    next_reg: &mut u8,
+    ram_idx: &mut usize,
     code: &mut Vec<Inst>,
     variables: &mut HashSet<String>,
+    mmap: &mut HashMap<&'a Expr, Location>,
+    rmap: &mut HashMap<u8, &'a Expr>,
 ) -> Result<u8, LpErr> {
     match ast {
         Expr::Num(n) => {
             let reg = *next_reg;
+
+            // reserve a register for the result and (potentially) evict an existing entry to RAM.
+            rmap.entry(reg)
+                .and_modify(|expr| {
+                    create_write(expr, ram_idx, code, mmap);
+                    *expr = ast;
+                })
+                .or_insert(ast);
+
             code.push(Inst::Store(*n, u8tochar(reg)));
-            *next_reg += 1;
+            if mmap.contains_key(ast) {
+                return Err(LpErr::IR(format!("Tried overwriting existing MMAP value -- duplicate expression {ast:?}")));
+            }
+            mmap.insert(ast, Location::Reg(reg));
+
+            *next_reg = (*next_reg + 1) % REGISTER_COUNT;
             Ok(reg)
         }
         Expr::Var(v) => {
             let reg = *next_reg; // TODO: avoid duplicate register mapping+transfer
+
+            // reserve a register for the result and (potentially) evict an existing entry to RAM.
+            rmap.entry(reg)
+                .and_modify(|expr| {
+                    create_write(expr, ram_idx, code, mmap);
+                    *expr = ast;
+                })
+                .or_insert(ast);
+
             code.push(Inst::Transfer(v.clone(), u8tochar(reg)));
+            if mmap.contains_key(ast) {
+                return Err(LpErr::IR(format!("Tried overwriting existing MMAP value -- duplicate expression {ast:?}")));
+            }
+            mmap.insert(ast, Location::Reg(reg));
+
             variables.insert(v.clone());
-            *next_reg += 1;
+            *next_reg = (*next_reg + 1) % REGISTER_COUNT;
             Ok(reg)
         }
         Expr::UnaryOp(Operator::Sub, e) => {
-            let left_reg = ast_to_ir(&Expr::Num(0), next_reg, code, variables)?;
-            let right_reg = ast_to_ir(e, next_reg, code, variables)?;
+            // TODO: optimization potential -> do the right register first to avoid collisions
+            let mut left_reg = ast_to_ir(
+                &Expr::Num(0),
+                next_reg,
+                ram_idx,
+                code,
+                variables,
+                mmap,
+                rmap,
+            )?;
+            let mut right_reg = ast_to_ir(e, next_reg, ram_idx, code, variables, mmap, rmap)?;
+
+            fetch_if_necessary(
+                &mut left_reg,
+                &Expr::Num(0),
+                next_reg,
+                ram_idx,
+                code,
+                mmap,
+                rmap,
+            );
+
+            fetch_if_necessary(&mut right_reg, e, next_reg, ram_idx, code, mmap, rmap);
+
             code.push(Inst::Sub(u8tochar(left_reg), u8tochar(right_reg)));
+
+            rmap.entry(right_reg).and_modify(|val| *val = ast);
+            // forced insert here because register is more useful than a potential hit in RAM
+            mmap.insert(ast, Location::Reg(right_reg));
+
             Ok(right_reg)
         }
         Expr::UnaryOp(op, _) => Err(LpErr::IR(format!("invalid unary operator `{op}`"))),
         Expr::BinaryOp(left, op, right) => {
-            let left_reg = ast_to_ir(left, next_reg, code, variables)?;
-            let right_reg = ast_to_ir(right, next_reg, code, variables)?;
+            let mut left_reg = ast_to_ir(left, next_reg, ram_idx, code, variables, mmap, rmap)?;
+            let mut right_reg = ast_to_ir(right, next_reg, ram_idx, code, variables, mmap, rmap)?;
+
+            fetch_if_necessary(&mut left_reg, left, next_reg, ram_idx, code, mmap, rmap);
+            fetch_if_necessary(&mut right_reg, right, next_reg, ram_idx, code, mmap, rmap);
 
             let inst = match op {
                 Operator::Add => Inst::Add(u8tochar(left_reg), u8tochar(right_reg)),
@@ -68,6 +212,11 @@ fn ast_to_ir(
             };
 
             code.push(inst);
+
+            rmap.entry(right_reg).and_modify(|val| *val = ast);
+            // forced insert here because register is more useful than a potential hit in RAM
+            mmap.insert(ast, Location::Reg(right_reg));
+
             Ok(right_reg)
         }
     }
@@ -78,6 +227,7 @@ pub fn interpret_ir(
     input_variables: &HashMap<String, String>,
 ) -> Result<i32, LpErr> {
     let mut reg_store = HashMap::<Reg, i32>::new();
+    let mut ram = vec![0; RAM_SIZE];
 
     for inst in instructions {
         println!("Variable store is: {reg_store:?}");
@@ -113,6 +263,24 @@ pub fn interpret_ir(
                 return Ok(*reg_store
                     .get(&r)
                     .ok_or(LpErr::Interpret(format!("register `{}` is empty", r)))?);
+            }
+            Inst::Write(_, addr) | Inst::Load(addr, _) if addr >= &ram.len() => {
+                return Err(LpErr::Interpret(format!(
+                    "requested RAM address {addr} doesn't exist."
+                )));
+            }
+            Inst::Write(r, addr) => {
+                if let Some(val) = reg_store.get(&r) {
+                    ram[*addr] = *val;
+                } else {
+                    return Err(LpErr::Interpret(format!("register `{r}` is empty")));
+                }
+            }
+            Inst::Load(addr, r) => {
+                reg_store
+                    .entry(*r)
+                    .and_modify(|e| *e = ram[*addr])
+                    .or_insert(ram[*addr]);
             }
         }
     }

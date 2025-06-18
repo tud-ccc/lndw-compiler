@@ -96,6 +96,8 @@ impl AssemblyOutput {
                     Inst::Store(_, _) => 0.0667,
                     Inst::Transfer(_, _) => 0.0667,
                     Inst::Result(_) => 0.0667,
+                    Inst::Write(_, _) => 0.0033,
+                    Inst::Load(_, _) => 0.0033,
                 };
                 *progress += progress_increment;
                 self.total_time += 0.016667; // 60 fps?
