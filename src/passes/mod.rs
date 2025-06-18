@@ -1,6 +1,6 @@
-use std::ops::Neg;
+use std::{collections::HashSet, ops::Neg};
 
-use crate::types::{Expr, Operator};
+use crate::types::{Expr, Inst, Operator};
 
 pub trait ConstantFold {
     fn run_constant_fold(self) -> Self;
@@ -58,4 +58,23 @@ impl ConstantFold for Expr {
             }
         }
     }
+}
+
+/// Remove cache writes of lines that are never loaded
+pub fn run_cache_optimization(instructions: Vec<Inst>) -> Vec<Inst> {
+    let loaded_lines: HashSet<usize> = instructions
+        .iter()
+        .filter_map(|i| match i {
+            Inst::Load(addr, _) => Some(*addr),
+            _ => None,
+        })
+        .collect();
+
+    instructions
+        .into_iter()
+        .filter(|i| match i {
+            Inst::Write(_, target_addr) => loaded_lines.contains(target_addr),
+            _ => true,
+        })
+        .collect()
 }

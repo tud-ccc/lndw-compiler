@@ -3,7 +3,7 @@ use std::ops::{Add, Div, Mul, Sub};
 use std::vec;
 
 use crate::parser;
-use crate::passes::ConstantFold;
+use crate::passes::{ConstantFold, run_cache_optimization};
 pub use crate::types::*;
 use crate::{RAM_SIZE, REGISTER_COUNT};
 
@@ -13,7 +13,12 @@ pub fn compile(input: &str, constant_fold: bool) -> Result<(Vec<Inst>, HashSet<S
         ast = ast.run_constant_fold();
     }
 
-    generate_ir(&ast)
+    let (mut instructions, variables) = generate_ir(&ast)?;
+
+    // TODO: make optional! With a checkbox etc!
+    instructions = run_cache_optimization(instructions);
+
+    Ok((instructions, variables))
 }
 
 fn generate_ir(ast: &Expr) -> Result<(Vec<Inst>, HashSet<String>), LpErr> {
