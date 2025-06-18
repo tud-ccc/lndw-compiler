@@ -140,9 +140,10 @@ fn ast_to_ir<'a>(
 
             code.push(Inst::Store(*n, u8tochar(reg)));
             if mmap.contains_key(ast) {
-                return Err(LpErr::IR(format!("Tried overwriting existing MMAP value -- duplicate expression {ast:?}")));
+                eprintln!("Tried overwriting existing MMAP value -- duplicate expression {ast:?}");
+            } else {
+                mmap.insert(ast, Location::Reg(reg));
             }
-            mmap.insert(ast, Location::Reg(reg));
 
             *next_reg = (*next_reg + 1) % REGISTER_COUNT;
             Ok(reg)
@@ -160,9 +161,12 @@ fn ast_to_ir<'a>(
 
             code.push(Inst::Transfer(v.clone(), u8tochar(reg)));
             if mmap.contains_key(ast) {
-                return Err(LpErr::IR(format!("Tried overwriting existing MMAP value -- duplicate expression {ast:?}")));
+                eprintln!(
+                    "[warn] Tried overwriting existing MMAP value -- duplicate expression {ast:?}"
+                );
+            } else {
+                mmap.insert(ast, Location::Reg(reg));
             }
-            mmap.insert(ast, Location::Reg(reg));
 
             variables.insert(v.clone());
             *next_reg = (*next_reg + 1) % REGISTER_COUNT;
