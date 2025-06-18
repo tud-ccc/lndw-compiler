@@ -17,7 +17,7 @@ impl Display for LpErr {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Operator {
     Add,
     Sub,
@@ -51,7 +51,7 @@ impl Display for Operator {
 }
 
 /// The main AST struct for representing the IR.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum Expr {
     Num(i32),
     Var(String),
@@ -72,16 +72,29 @@ impl From<i32> for Expr {
 }
 
 pub type Reg = char;
+pub type MemAddr = usize;
 
 #[derive(Debug, Clone)]
 pub enum Inst {
+    /// Add two values, storing the result in Register #2.
     Add(Reg, Reg),
+    /// Subtract two values, storing the result in Register #2.
     Sub(Reg, Reg),
+    /// Multiply two values, storing the result in Register #2.
     Mul(Reg, Reg),
+    /// Divide two values, storing the result in Register #2.
     Div(Reg, Reg),
+    /// Store a number in a register.
     Store(i32, Reg),
+    /// Transfer a value into a register.
     Transfer(String, Reg),
+    /// Return the value in the given register and terminate computation.
     Result(Reg),
+
+    /// Write the contents of a register to main memory.
+    Write(Reg, MemAddr),
+    /// Load a piece of data from main memory into a register.
+    Load(MemAddr, Reg),
 }
 
 impl Display for Inst {
@@ -94,6 +107,8 @@ impl Display for Inst {
             Inst::Store(n, r) => write!(f, "store the number {n} in register {r}"),
             Inst::Transfer(v, r) => write!(f, "transfer variable {v} to register {r}"),
             Inst::Result(r) => write!(f, "the result is in register {r}"),
+            Inst::Write(r, addr) => write!(f, "write register {r} to main memory (cell {addr})"),
+            Inst::Load(addr, r) => write!(f, "load main memory cell {addr} into register {r}"),
         }
     }
 }

@@ -1,3 +1,5 @@
+#![feature(map_try_insert)]
+
 mod app;
 mod compiler;
 mod gui;
@@ -8,6 +10,10 @@ mod types;
 use crate::app::LndwApp;
 
 const APP_NAME: &str = "Lange Nacht der Wissenschaften";
+
+// TODO(feliix42): could be a setting in the UI?
+const REGISTER_COUNT: u8 = 6;
+const RAM_SIZE: usize = 16;
 
 fn main() {
     let native_options = eframe::NativeOptions::default();

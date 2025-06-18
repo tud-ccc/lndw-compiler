@@ -58,6 +58,8 @@ impl eframe::App for LndwApp {
                                 Inst::Store(_, _) => 0.1,
                                 Inst::Transfer(_, _) => 0.1,
                                 Inst::Result(_) => 0.1,
+                                Inst::Write(_, _) => 0.005,
+                                Inst::Load(_, _) => 0.005,
                             };
                             if should_update && progress.is_none() {
                                 *progress = Some(progress_increment);
