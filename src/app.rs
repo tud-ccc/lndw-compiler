@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::gui::{AssemblyOutput, CodeEditor, EditorAction, Window};
+use crate::gui::{AssemblyOutput, CodeEditor, EditorAction, InterpreterOptions, Window};
 use eframe::egui::{self, FontData, FontFamily, Modifiers, Ui};
 use eframe::epaint::text::{FontInsert, InsertFontFamily};
 
@@ -17,6 +17,7 @@ fn set_open(open: &mut BTreeSet<String>, key: &str, is_open: bool) {
 #[derive(Default)]
 pub struct LndwApp {
     code_editor: CodeEditor,
+    interpreter_options: InterpreterOptions,
     asm_unoptimized: AssemblyOutput,
     asm_optimized: AssemblyOutput,
     result: Option<String>,
@@ -77,6 +78,10 @@ impl eframe::App for LndwApp {
                         let mut is_open = self.open.contains(&self.asm_optimized.name());
                         ui.toggle_value(&mut is_open, self.asm_optimized.name());
                         set_open(&mut self.open, &self.asm_optimized.name(), is_open);
+
+                        let mut is_open = self.open.contains(&self.interpreter_options.name());
+                        ui.toggle_value(&mut is_open, self.interpreter_options.name());
+                        set_open(&mut self.open, &self.interpreter_options.name(), is_open);
 
                         ui.toggle_value(&mut false, "Optimizations");
 
@@ -140,6 +145,10 @@ impl eframe::App for LndwApp {
         let mut is_open = self.open.contains(&self.asm_optimized.name());
         self.asm_optimized.show(ctx, &mut is_open);
         set_open(&mut self.open, &self.asm_optimized.name(), is_open);
+
+        let mut is_open = self.open.contains(&self.interpreter_options.name());
+        self.interpreter_options.show(ctx, &mut is_open);
+        set_open(&mut self.open, &self.interpreter_options.name(), is_open);
 
         egui::CentralPanel::default().show(ctx, |_| {});
     }
