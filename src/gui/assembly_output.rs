@@ -70,11 +70,6 @@ impl AssemblyOutput {
     }
 
     pub fn ui(&mut self, ui: &mut egui::Ui) {
-        ui.vertical_centered(|ui| {
-            ui.heading(self.heading.clone());
-        });
-        ui.separator();
-
         if let Some(error) = &self.error {
             ui.colored_label(egui::Color32::RED, "Error:");
             ui.colored_label(egui::Color32::RED, error);
@@ -138,5 +133,18 @@ impl AssemblyOutput {
             ui.separator();
             ui.label(format!("Program result: {}", self.program_result.unwrap()));
         }
+    }
+}
+
+impl crate::gui::Window for AssemblyOutput {
+    fn name(&self) -> String {
+        self.heading.clone()
+    }
+
+    fn show(&mut self, ctx: &egui::Context, open: &mut bool) {
+        egui::Window::new(self.name())
+            .open(open)
+            .default_height(600.0)
+            .show(ctx, |ui| self.ui(ui));
     }
 }

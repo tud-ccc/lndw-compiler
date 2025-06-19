@@ -1,20 +1,32 @@
-use crate::gui::{AssemblyOutput, CodeEditor};
-use eframe::egui::{self, FontData, FontFamily};
+use std::collections::BTreeSet;
+
+use crate::gui::{AssemblyOutput, CodeEditor, EditorAction, Window};
+use eframe::egui::{self, FontData, FontFamily, Modifiers, Ui};
 use eframe::epaint::text::{FontInsert, InsertFontFamily};
-use std::collections::HashMap;
+
+fn set_open(open: &mut BTreeSet<String>, key: &str, is_open: bool) {
+    if is_open {
+        if !open.contains(key) {
+            open.insert(key.to_owned());
+        }
+    } else {
+        open.remove(key);
+    }
+}
 
 #[derive(Default)]
 pub struct LndwApp {
     code_editor: CodeEditor,
     asm_unoptimized: AssemblyOutput,
     asm_optimized: AssemblyOutput,
-    input_variables: HashMap<String, String>,
     result: Option<String>,
+
+    /// List of open windows
+    open: BTreeSet<String>,
 }
 
 impl LndwApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        cc.egui_ctx.set_visuals(egui::Visuals::light());
         cc.egui_ctx.set_zoom_factor(1.5);
 
         cc.egui_ctx.add_font(FontInsert::new(
@@ -26,77 +38,167 @@ impl LndwApp {
             }],
         ));
 
-        Self {
+        let mut res = Self {
             asm_unoptimized: AssemblyOutput::empty("Unoptimized output".to_string()),
             asm_optimized: AssemblyOutput::empty("Optimized output".to_string()),
             ..Self::default()
-        }
+        };
+
+        set_open(&mut res.open, &res.code_editor.name(), true);
+
+        res
     }
 }
 
 impl eframe::App for LndwApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::SidePanel::right("panel_unoptimized")
-            .resizable(true)
-            .default_width(400.0)
-            .min_width(300.0)
+        egui::SidePanel::right("window_selector")
+            .resizable(false)
+            .default_width(160.0)
+            .min_width(160.0)
             .show(ctx, |ui| {
-                self.asm_optimized.ui(ui);
+                ui.add_space(4.0);
+                ui.vertical_centered(|ui| ui.heading("Tools"));
+
+                ui.separator();
+
+                // window list
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
+                        // self.groups.checkboxes(ui, &mut self.open);
+                        let mut is_open = self.open.contains(&self.code_editor.name());
+                        ui.toggle_value(&mut is_open, self.code_editor.name());
+                        set_open(&mut self.open, &self.code_editor.name(), is_open);
+
+                        let mut is_open = self.open.contains(&self.asm_unoptimized.name());
+                        ui.toggle_value(&mut is_open, self.asm_unoptimized.name());
+                        set_open(&mut self.open, &self.asm_unoptimized.name(), is_open);
+
+                        let mut is_open = self.open.contains(&self.asm_optimized.name());
+                        ui.toggle_value(&mut is_open, self.asm_optimized.name());
+                        set_open(&mut self.open, &self.asm_optimized.name(), is_open);
+
+                        ui.toggle_value(&mut false, "Optimizations");
+
+                        // TODO: set open when compile/run
+
+                        ui.separator();
+                        if ui.button("Organize windows").clicked() {
+                            ui.ctx().memory_mut(|mem| mem.reset_areas());
+                        }
+                    });
+                });
             });
 
-        egui::SidePanel::right("panel_optimized")
-            .resizable(true)
-            .default_width(400.0)
-            .min_width(300.0)
-            .show(ctx, |ui| {
-                self.asm_unoptimized.ui(ui);
+        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                file_menu_button(ui);
             });
-
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Hello! Write some expression here");
-
-            self.code_editor.ui(ui);
-
-            if ui.button("Compile!").clicked() {
-                if let Ok(vars) = self.asm_unoptimized.compile(&self.code_editor.code, false) {
-                    self.input_variables =
-                        vars.iter().map(|s| (s.clone(), String::new())).collect();
-                } else {
-                    self.input_variables.clear();
-                }
-
-                if self.code_editor.do_constant_folding {
-                    // TODO: consider what to do with vars & any errors.
-                    let _ = self.asm_optimized.compile(&self.code_editor.code, true);
-                }
-            }
-
-            if !self.input_variables.is_empty() {
-                ui.heading("Input variables:");
-            }
-
-            egui::Grid::new("vars").show(ui, |ui| {
-                for (var, val) in self.input_variables.iter_mut() {
-                    ui.label(var);
-                    ui.text_edit_singleline(val);
-                    ui.end_row();
-                }
-            });
-
-            if ui.button("Run!").clicked() {
-                self.asm_unoptimized.run(&self.input_variables);
-                self.asm_optimized.run(&self.input_variables);
-            }
-
-            if let Some(result) = &self.result {
-                ui.label(format!("Result: {result}"));
-            }
-
-            if ui.button("Clear").clicked() {
-                self.asm_unoptimized.clear();
-                self.asm_optimized.clear();
-                self.result = None;
-            }
         });
+
+        let mut is_open = self.open.contains(&self.code_editor.name());
+        self.code_editor.show(ctx, &mut is_open);
+        set_open(&mut self.open, &self.code_editor.name(), is_open);
+
+        // code actions?
+        for action in self.code_editor.actions.drain(..) {
+            match action {
+                EditorAction::Compile => {
+                    if let Ok(vars) = self.asm_unoptimized.compile(&self.code_editor.code, false) {
+                        self.code_editor.input_variables =
+                            vars.iter().map(|s| (s.clone(), String::new())).collect();
+                    } else {
+                        self.code_editor.input_variables.clear();
+                    }
+
+                    if self.code_editor.do_constant_folding {
+                        // TODO: consider what to do with vars & any errors.
+                        let _ = self.asm_optimized.compile(&self.code_editor.code, true);
+                    }
+
+                    set_open(&mut self.open, &self.asm_optimized.name(), true);
+                    set_open(&mut self.open, &self.asm_unoptimized.name(), true);
+                }
+                EditorAction::Run => {
+                    set_open(&mut self.open, &self.asm_optimized.name(), true);
+                    set_open(&mut self.open, &self.asm_unoptimized.name(), true);
+                    self.asm_unoptimized.run(&self.code_editor.input_variables);
+                    self.asm_optimized.run(&self.code_editor.input_variables);
+                }
+                EditorAction::Clear => {
+                    self.asm_unoptimized.clear();
+                    self.asm_optimized.clear();
+                    self.result = None;
+                }
+            }
+        }
+
+        let mut is_open = self.open.contains(&self.asm_unoptimized.name());
+        self.asm_unoptimized.show(ctx, &mut is_open);
+        set_open(&mut self.open, &self.asm_unoptimized.name(), is_open);
+
+        let mut is_open = self.open.contains(&self.asm_optimized.name());
+        self.asm_optimized.show(ctx, &mut is_open);
+        set_open(&mut self.open, &self.asm_optimized.name(), is_open);
+
+        egui::CentralPanel::default().show(ctx, |_| {});
     }
+}
+
+fn file_menu_button(ui: &mut Ui) {
+    let organize_shortcut =
+        egui::KeyboardShortcut::new(Modifiers::CTRL | Modifiers::SHIFT, egui::Key::O);
+    let reset_shortcut =
+        egui::KeyboardShortcut::new(Modifiers::CTRL | Modifiers::SHIFT, egui::Key::R);
+
+    // NOTE: we must check the shortcuts OUTSIDE of the actual "File" menu,
+    // or else they would only be checked if the "File" menu was actually open!
+
+    if ui.input_mut(|i| i.consume_shortcut(&organize_shortcut)) {
+        ui.ctx().memory_mut(|mem| mem.reset_areas());
+    }
+
+    if ui.input_mut(|i| i.consume_shortcut(&reset_shortcut)) {
+        ui.ctx().memory_mut(|mem| *mem = Default::default());
+    }
+
+    egui::widgets::global_theme_preference_switch(ui);
+
+    ui.separator();
+
+    ui.menu_button("View", |ui| {
+        ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+
+        egui::gui_zoom::zoom_menu_buttons(ui);
+        ui.weak(format!(
+            "Current zoom: {:.0}%",
+            100.0 * ui.ctx().zoom_factor()
+        ))
+        .on_hover_text("The UI zoom level, on top of the operating system's default value");
+        ui.separator();
+
+        if ui
+            .add(
+                egui::Button::new("Organize Windows")
+                    .shortcut_text(ui.ctx().format_shortcut(&organize_shortcut)),
+            )
+            .clicked()
+        {
+            ui.ctx().memory_mut(|mem| mem.reset_areas());
+        }
+
+        if ui
+            .add(
+                egui::Button::new("Reset egui memory")
+                    .shortcut_text(ui.ctx().format_shortcut(&reset_shortcut)),
+            )
+            .on_hover_text("Forget scroll, positions, sizes etc")
+            .clicked()
+        {
+            ui.ctx().memory_mut(|mem| *mem = Default::default());
+        }
+    });
+
+    ui.selectable_label(false, "German");
+    ui.selectable_label(true, "English");
 }
