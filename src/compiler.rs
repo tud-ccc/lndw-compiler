@@ -244,7 +244,12 @@ pub fn interpret_ir(
             Inst::Add(a, b) => run_binop(*a, *b, i32::add, &mut reg_store)?,
             Inst::Sub(a, b) => run_binop(*a, *b, i32::sub, &mut reg_store)?,
             Inst::Mul(a, b) => run_binop(*a, *b, i32::mul, &mut reg_store)?,
-            Inst::Div(a, b) => run_binop(*a, *b, i32::div, &mut reg_store)?,
+            Inst::Div(a, b) => {
+                if check_store_contains(&reg_store, *b)? == 0 {
+                    return Err(LpErr::Interpret("attempted division by zero".to_string()));
+                }
+                run_binop(*a, *b, i32::div, &mut reg_store)?
+            },
             Inst::Store(n, reg) => {
                 if reg_store.contains_key(reg) {
                     eprintln!("Warning: overwriting register `{reg}`.");
