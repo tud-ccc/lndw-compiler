@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use rust_i18n::t;
 
 #[derive(Debug)]
 pub enum LpErr {
@@ -100,15 +101,15 @@ pub enum Inst {
 impl Display for Inst {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Inst::Add(a, b) => write!(f, "add register {a} to register {b}"),
-            Inst::Sub(a, b) => write!(f, "subtract register {a} from register {b}"),
-            Inst::Mul(a, b) => write!(f, "multiply register {a} by register {b}"),
-            Inst::Div(a, b) => write!(f, "divide register {a} by register {b}"),
-            Inst::Store(n, r) => write!(f, "store the number {n} in register {r}"),
-            Inst::Transfer(v, r) => write!(f, "transfer variable {v} to register {r}"),
-            Inst::Result(r) => write!(f, "the result is in register {r}"),
-            Inst::Write(r, addr) => write!(f, "write register {r} to main memory (cell {addr})"),
-            Inst::Load(addr, r) => write!(f, "load main memory cell {addr} into register {r}"),
+            Inst::Add(a, b) => f.write_str(&t!("compiler.inst.add", a = a, b = b)),
+            Inst::Sub(a, b) => f.write_str(&t!("compiler.inst.sub", a = a, b = b)),
+            Inst::Mul(a, b) => f.write_str(&t!("compiler.inst.mul", a = a, b = b)),
+            Inst::Div(a, b) => f.write_str(&t!("compiler.inst.div", a = a, b = b)),
+            Inst::Store(n, r) => f.write_str(&t!("compiler.inst.store", n = n, r = r)),
+            Inst::Transfer(v, r) => f.write_str(&t!("compiler.inst.transfer", v = v, r = r)),
+            Inst::Result(r) => f.write_str(&t!("compiler.inst.result", r = r)),
+            Inst::Write(r, addr) => f.write_str(&t!("compiler.inst.write", r = r, addr = addr)),
+            Inst::Load(addr, r) => f.write_str(&t!("compiler.inst.load", addr = addr, r = r)),
         }
     }
 }

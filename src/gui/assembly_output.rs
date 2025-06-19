@@ -4,6 +4,8 @@ use crate::{
 };
 use eframe::egui;
 use std::collections::{HashMap, HashSet};
+use eframe::egui::Id;
+use rust_i18n::t;
 
 #[derive(Default)]
 pub struct AssemblyOutput {
@@ -90,7 +92,7 @@ impl AssemblyOutput {
         }
 
         if self.asm.is_none() {
-            ui.label("Assembly output will be here");
+            ui.label(t!("output.empty"));
             return;
         }
 
@@ -140,11 +142,12 @@ impl AssemblyOutput {
 
         if self.running {
             ui.separator();
-            ui.label(format!("Total time: {} s", self.total_time.round()));
+            // ui.label(format!("{}: {} s", t!("output.time"), self.total_time.round()));
+            ui.label(t!("output.time", t = self.total_time.round()));
         }
         if done {
             ui.separator();
-            ui.label(format!("Program result: {}", self.program_result.unwrap()));
+            ui.label(t!("output.result", res = self.program_result.unwrap()));
         }
     }
 }
@@ -155,7 +158,8 @@ impl crate::gui::Window for AssemblyOutput {
     }
 
     fn show(&mut self, ctx: &egui::Context, open: &mut bool) {
-        egui::Window::new(self.name())
+        egui::Window::new(t!(self.name()))
+            .id(Id::new(self.name()))
             .open(open)
             .default_height(600.0)
             .show(ctx, |ui| self.ui(ui));

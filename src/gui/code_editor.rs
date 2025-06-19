@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use eframe::egui::{self, Align, Layout, Modifiers};
-
+use rust_i18n::t;
 use crate::compiler::CompileOptions;
 
 pub enum EditorAction {
@@ -54,7 +54,7 @@ impl CodeEditor {
 
         ui.horizontal(|ui| {
             ui.set_height(0.0);
-            ui.label("You can write your expressions in this TextEdit box.");
+            ui.label(t!("editor.explain"));
         });
 
         egui::ScrollArea::vertical().show(ui, |ui| {
@@ -71,35 +71,35 @@ impl CodeEditor {
         ui.horizontal(|ui| {
             ui.checkbox(
                 &mut self.compile_options.do_constant_folding,
-                "Constant folding",
+                t!("editor.constant_folding"),
             );
             ui.checkbox(
                 &mut self.compile_options.run_cache_optimization,
-                "Cache Optimization",
+                t!("editor.cache_opt"),
             );
         });
 
         ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-            if ui.button("Compile!").clicked() {
+            if ui.button(t!("editor.compile")).clicked() {
                 self.actions.push(EditorAction::Compile);
             }
 
             if ui
-                .button("Run!")
-                .on_hover_text("You can alternatively press CTRL+Enter to compile and run")
+                .button(t!("editor.run"))
+                .on_hover_text(t!("editor.run.alt"))
                 .clicked()
             {
                 self.actions.push(EditorAction::Run);
             }
 
-            if ui.button("Clear").clicked() {
+            if ui.button(t!("editor.clear")).clicked() {
                 self.actions.push(EditorAction::Clear);
             }
         });
 
         if !self.input_variables.is_empty() {
             ui.separator();
-            ui.heading("Input variables:");
+            ui.heading(t!("editor.inputs"));
 
             egui::Grid::new("vars")
                 .num_columns(2)

@@ -1,0 +1,98 @@
+_version: 2
+app.name:
+  en: Long night of sciences
+  de: Lange Nacht der Wissenschaften
+app.english:
+  en: English
+  de: Englisch
+app.german:
+  en: German
+  de: Deutsch
+app.tools:
+  en: Tools
+app.optimizations:
+  en: Optimizations
+  de: Optimierungen
+app.organize:
+  en: Organize windows
+  de: Fenster ordnen
+app.reset:
+  en: Reset egui memory
+app.forget:
+  en: Forget scroll, positions, sizes etc
+name.code_editor:
+  en: Code editor
+  de: Code-Editor
+output.unopt:
+  en: Unoptimized output
+  de: Unoptimierter output???
+output.opt:
+  en: Optimized output
+  de: Optimierter output???
+output.empty:
+  en: Assembly output will be here
+output.time:
+  en: "Total time: %{t} sec"
+  de: "Gesamtdauer: %{t} s"
+output.result:
+  en: Program result is %{res}
+  de: Ergebnis ist %{res}
+editor:
+  explain:
+    en: You can write your expressions in this TextEdit box.
+    de: In dieses Textfeld können Sie einen Ausdruck schreiben.
+  constant_folding:
+    en: Constant folding
+  cache_opt:
+    en: Cache optimization
+    de: Cache-Optimierung
+  compile:
+    en: Compile!
+    de: Kompilieren!
+  run:
+    en: Run!
+    de: Ausführen!
+  run.alt:
+    en: You can alternatively press CTRL+Enter to compile and run
+  clear:
+    en: Clear
+    de: Löschen
+  inputs:
+    en: "Input variables:"
+    de: "Eingabevariablen:"
+compiler:
+  error:
+    divzero:
+      en: attempted division by zero
+      de: versuchte Division durch Null
+    unknownvar:
+      en: unknown variable
+      de: unbekannte Variable `%{v}`
+  inst:
+    add:
+      en: add register %{a} to register %{b}
+      de: Register %{a} zu Register %{b} addieren
+    sub:
+      en: subtract register %{a} from register %{b}
+      de: Register %{a} von Register %{b} subtrahieren
+    mul:
+      en: multiply register %{a} by register %{b}
+      de: Register %{a} mit Register %{b} multiplizieren
+    div:
+      en: divide register %{a} by register %{b}
+      de: Register %{a} durch Register %{b} dividieren
+    store:
+      en: store the number %{n} in register %{r}
+      de: die Zahl %{n} im Register %{r} speichern
+    transfer:
+      en: transfer variable %{v} to register %{r}
+      de: übertragen der Variablen %{v} in das Register %{r}
+    result:
+      en: the result is in register %{r}
+      de: das Ergebnis steht im Register %{r}
+    write:
+      en: write register %{r} to main memory (cell %{addr})
+      de: Register %{r} in den Hauptspeicher schreiben (Zelle %{addr})
+    load:
+      en: load main memory cell %{addr} into register %{r}
+      de: Laden der Hauptspeicherzelle %{addr} in das Register %{r}

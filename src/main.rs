@@ -6,13 +6,14 @@ mod passes;
 mod types;
 
 use crate::app::LndwApp;
+use rust_i18n::t;
 
-const APP_NAME: &str = "Lange Nacht der Wissenschaften";
+rust_i18n::i18n!("locales", fallback = "en");
 
 fn main() {
     let native_options = eframe::NativeOptions::default();
     let _ = eframe::run_native(
-        APP_NAME,
+        &t!("app.name"),
         native_options,
         Box::new(|cc| Ok(Box::new(LndwApp::new(cc)))),
     );

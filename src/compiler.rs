@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::{Add, Div, Mul, Sub};
 use std::vec;
-
+use rust_i18n::t;
 use crate::gui::InterpreterOptions;
 use crate::parser;
 use crate::passes::{ConstantFold, run_cache_optimization};
@@ -278,7 +278,7 @@ pub fn interpret_ir(
             Inst::Mul(a, b) => run_binop(*a, *b, i32::mul, &mut reg_store)?,
             Inst::Div(a, b) => {
                 if check_store_contains(&reg_store, *b)? == 0 {
-                    return Err(LpErr::Interpret("attempted division by zero".to_string()));
+                    return Err(LpErr::Interpret(t!("compiler.error.divzero").to_string()));
                 }
                 run_binop(*a, *b, i32::div, &mut reg_store)?
             }
@@ -293,7 +293,7 @@ pub fn interpret_ir(
                 }
             }
             Inst::Transfer(v, _) if !input_variables.contains_key(v) => {
-                return Err(LpErr::Interpret(format!("unknown variable `{v}`")));
+                return Err(LpErr::Interpret(t!("compiler.error.unkownvar",  v = v).to_string()));
             }
             Inst::Transfer(_, r) if reg_store.contains_key(r) => {
                 return Err(LpErr::Interpret(format!(

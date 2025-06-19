@@ -4,6 +4,7 @@ use crate::compiler::CompileOptions;
 use crate::gui::{AssemblyOutput, CodeEditor, EditorAction, InterpreterOptions, Window};
 use eframe::egui::{self, FontData, FontFamily, Modifiers, Ui};
 use eframe::epaint::text::{FontInsert, InsertFontFamily};
+use rust_i18n::t;
 
 macro_rules! add_sidebar_item {
     ($ui: expr, $open: expr, $item: expr) => {
@@ -38,6 +39,7 @@ pub struct LndwApp {
     asm_unoptimized: AssemblyOutput,
     asm_optimized: AssemblyOutput,
     result: Option<String>,
+    language: String,
 
     /// List of open windows
     open: BTreeSet<String>,
@@ -57,8 +59,9 @@ impl LndwApp {
         ));
 
         let mut res = Self {
-            asm_unoptimized: AssemblyOutput::empty("Unoptimized output".to_string()),
-            asm_optimized: AssemblyOutput::empty("Optimized output".to_string()),
+            asm_unoptimized: AssemblyOutput::empty("output.unopt".to_string()),
+            asm_optimized: AssemblyOutput::empty("output.opt".to_string()),
+            language: "en".to_string(),
             ..Self::default()
         };
 
@@ -76,7 +79,7 @@ impl eframe::App for LndwApp {
             .min_width(160.0)
             .show(ctx, |ui| {
                 ui.add_space(4.0);
-                ui.vertical_centered(|ui| ui.heading("Tools"));
+                ui.vertical_centered(|ui| ui.heading(t!("app.tools")));
 
                 ui.separator();
 
@@ -88,10 +91,10 @@ impl eframe::App for LndwApp {
                         add_sidebar_item!(ui, self.open, self.asm_optimized);
                         add_sidebar_item!(ui, self.open, self.interpreter_options);
 
-                        ui.toggle_value(&mut false, "Optimizations");
+                        ui.toggle_value(&mut false, t!("app.optimizations"));
 
                         ui.separator();
-                        if ui.button("Organize windows").clicked() {
+                        if ui.button(t!("app.organize")).clicked() {
                             ui.ctx().memory_mut(|mem| mem.reset_areas());
                         }
                     });
@@ -100,7 +103,7 @@ impl eframe::App for LndwApp {
 
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                file_menu_button(ui);
+                file_menu_button(ui, &mut self.language);
             });
         });
 
@@ -160,7 +163,7 @@ impl eframe::App for LndwApp {
     }
 }
 
-fn file_menu_button(ui: &mut Ui) {
+fn file_menu_button(ui: &mut Ui, lang: &mut String) {
     let organize_shortcut =
         egui::KeyboardShortcut::new(Modifiers::CTRL | Modifiers::SHIFT, egui::Key::O);
     let reset_shortcut =
@@ -194,7 +197,7 @@ fn file_menu_button(ui: &mut Ui) {
 
         if ui
             .add(
-                egui::Button::new("Organize Windows")
+                egui::Button::new(t!("app.organize"))
                     .shortcut_text(ui.ctx().format_shortcut(&organize_shortcut)),
             )
             .clicked()
@@ -204,16 +207,22 @@ fn file_menu_button(ui: &mut Ui) {
 
         if ui
             .add(
-                egui::Button::new("Reset egui memory")
+                egui::Button::new(t!("app.reset"))
                     .shortcut_text(ui.ctx().format_shortcut(&reset_shortcut)),
             )
-            .on_hover_text("Forget scroll, positions, sizes etc")
+            .on_hover_text(t!("app.forget"))
             .clicked()
         {
             ui.ctx().memory_mut(|mem| *mem = Default::default());
         }
     });
 
-    ui.selectable_label(false, "German");
-    ui.selectable_label(true, "English");
+    if ui.selectable_label(lang.as_str() == "de", t!("app.german")).clicked() {
+        rust_i18n::set_locale("de");
+        *lang = "de".to_string();
+    }
+    if ui.selectable_label(lang.as_str() == "en", t!("app.english")).clicked() {
+        rust_i18n::set_locale("en");
+        *lang = "en".to_string();
+    }
 }
