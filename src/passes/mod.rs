@@ -1,8 +1,10 @@
 use crate::types::Inst;
 use std::collections::HashSet;
 
+mod common_factor_elimination;
 mod constant_folding;
 
+pub use common_factor_elimination::CommonFactorElimination;
 pub use constant_folding::ConstantFold;
 
 /// Remove cache writes of lines that are never loaded
