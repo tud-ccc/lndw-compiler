@@ -112,19 +112,3 @@ fn remove_factor_from_expr(expr: &Expr, factor: &Expr) -> Expr {
         }
     }
 }
-
-fn collect_used_variables(expr: &Expr, used: &mut HashSet<String>) {
-    match expr {
-        Expr::Var(name) => {
-            used.insert(name.clone());
-        }
-        Expr::BinaryOp(left, _, right) => {
-            collect_used_variables(left, used);
-            collect_used_variables(right, used);
-        }
-        Expr::UnaryOp(_, expr) => {
-            collect_used_variables(expr, used);
-        }
-        Expr::Num(_) => {}
-    }
-}

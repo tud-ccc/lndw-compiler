@@ -46,6 +46,9 @@ editor:
   cache_opt:
     en: Cache optimization
     de: Cache-Optimierung
+  common_factor_elimination:
+    en: Common Factor Extraction
+    de: Faktorisierung
   compile:
     en: Compile!
     de: Kompilieren!

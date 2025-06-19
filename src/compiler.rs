@@ -1,21 +1,22 @@
+use crate::gui::InterpreterOptions;
+use crate::parser;
+use crate::passes::{CommonFactorElimination, ConstantFold, run_cache_optimization};
+pub use crate::types::*;
+use rust_i18n::t;
 use std::collections::{HashMap, HashSet};
 use std::ops::{Add, Div, Mul, Sub};
 use std::vec;
-use rust_i18n::t;
-use crate::gui::InterpreterOptions;
-use crate::parser;
-use crate::passes::{ConstantFold, run_cache_optimization};
-pub use crate::types::*;
 
 #[derive(Copy, Clone, Default)]
 pub struct CompileOptions {
     pub do_constant_folding: bool,
     pub run_cache_optimization: bool,
+    pub do_common_factor_elimination: bool,
 }
 
 impl CompileOptions {
     pub fn any(&self) -> bool {
-        self.do_constant_folding || self.run_cache_optimization
+        self.do_constant_folding || self.run_cache_optimization || self.do_common_factor_elimination
     }
 }
 
@@ -41,6 +42,10 @@ impl Compiler {
         let mut ast = parser::run_parser(input)?;
         if self.options.do_constant_folding {
             ast = ast.run_constant_fold();
+        }
+
+        if self.options.do_common_factor_elimination {
+            ast = ast.extract_common_factors();
         }
 
         let (mut instructions, variables) = self.generate_ir(&ast)?;
@@ -293,7 +298,9 @@ pub fn interpret_ir(
                 }
             }
             Inst::Transfer(v, _) if !input_variables.contains_key(v) => {
-                return Err(LpErr::Interpret(t!("compiler.error.unkownvar",  v = v).to_string()));
+                return Err(LpErr::Interpret(
+                    t!("compiler.error.unkownvar", v = v).to_string(),
+                ));
             }
             Inst::Transfer(_, r) if reg_store.contains_key(r) => {
                 return Err(LpErr::Interpret(format!(

@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
+use crate::compiler::CompileOptions;
 use eframe::egui::{self, Align, Layout, Modifiers};
 use rust_i18n::t;
-use crate::compiler::CompileOptions;
 
 pub enum EditorAction {
     Compile,
@@ -77,6 +77,10 @@ impl CodeEditor {
                 &mut self.compile_options.run_cache_optimization,
                 t!("editor.cache_opt"),
             );
+            ui.checkbox(
+                &mut self.compile_options.do_common_factor_elimination,
+                t!("editor.common_factor_elimination"),
+            )
         });
 
         ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
