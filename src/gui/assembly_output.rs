@@ -1,6 +1,7 @@
 use crate::{
-    compiler::{CompileOptions, Compiler, Inst, interpret_ir},
+    compiler::{CompileOptions, Compiler, Inst},
     gui::InterpreterOptions,
+    interpreter::Interpreter,
 };
 use eframe::egui;
 use eframe::egui::Id;
@@ -75,7 +76,11 @@ impl AssemblyOutput {
             return;
         }
 
-        match interpret_ir(self.instructions(), vars, hw) {
+        match Interpreter::with_config(&hw)
+            .load_instructions(self.instructions())
+            .with_variables(vars)
+            .run_to_end()
+        {
             Ok(r) => {
                 self.program_result = Some(r);
                 self.running = true;
