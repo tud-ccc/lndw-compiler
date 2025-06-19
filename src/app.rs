@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use crate::compiler::CompileOptions;
 use crate::gui::{AssemblyOutput, CodeEditor, EditorAction, InterpreterOptions, Window};
 use eframe::egui::{self, FontData, FontFamily, Modifiers, Ui};
 use eframe::epaint::text::{FontInsert, InsertFontFamily};
@@ -109,26 +110,39 @@ impl eframe::App for LndwApp {
         for action in self.code_editor.actions.drain(..) {
             match action {
                 EditorAction::Compile => {
-                    if let Ok(vars) = self.asm_unoptimized.compile(&self.code_editor.code, false) {
+                    if let Ok(vars) = self.asm_unoptimized.compile(
+                        &self.code_editor.code,
+                        CompileOptions::default(),
+                        self.interpreter_options,
+                    ) {
                         self.code_editor.input_variables =
                             vars.iter().map(|s| (s.clone(), String::new())).collect();
                     } else {
                         self.code_editor.input_variables.clear();
                     }
 
-                    if self.code_editor.do_constant_folding {
+                    if self.code_editor.compile_options.any() {
                         // TODO: consider what to do with vars & any errors.
-                        let _ = self.asm_optimized.compile(&self.code_editor.code, true);
+                        let _ = self.asm_optimized.compile(
+                            &self.code_editor.code,
+                            self.code_editor.compile_options,
+                            self.interpreter_options,
+                        );
+
+                        set_open(&mut self.open, &self.asm_optimized.name(), true);
                     }
 
-                    set_open(&mut self.open, &self.asm_optimized.name(), true);
                     set_open(&mut self.open, &self.asm_unoptimized.name(), true);
                 }
                 EditorAction::Run => {
-                    set_open(&mut self.open, &self.asm_optimized.name(), true);
                     set_open(&mut self.open, &self.asm_unoptimized.name(), true);
-                    self.asm_unoptimized.run(&self.code_editor.input_variables);
-                    self.asm_optimized.run(&self.code_editor.input_variables);
+                    self.asm_unoptimized
+                        .run(&self.code_editor.input_variables, self.interpreter_options);
+                    if self.code_editor.compile_options.any() {
+                        set_open(&mut self.open, &self.asm_optimized.name(), true);
+                        self.asm_optimized
+                            .run(&self.code_editor.input_variables, self.interpreter_options);
+                    }
                 }
                 EditorAction::Clear => {
                     self.asm_unoptimized.clear();

@@ -1,5 +1,6 @@
 use eframe::egui;
 
+#[derive(Copy, Clone)]
 pub struct InterpreterOptions {
     pub num_registers: u8,
     pub num_cachelines: usize,

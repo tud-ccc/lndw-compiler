@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use eframe::egui::{self, Align, Layout, Modifiers};
 
+use crate::compiler::CompileOptions;
+
 pub enum EditorAction {
     Compile,
     Run,
@@ -10,18 +12,18 @@ pub enum EditorAction {
 
 pub struct CodeEditor {
     pub code: String,
-    pub do_constant_folding: bool,
-    pub optimize_cache_use: bool,
+    pub compile_options: CompileOptions,
     pub actions: Vec<EditorAction>,
     pub input_variables: HashMap<String, String>,
 }
 
 impl Default for CodeEditor {
     fn default() -> Self {
+        let mut compile_options = CompileOptions::default();
+        compile_options.run_cache_optimization = true;
         Self {
             code: "1 + 1".into(),
-            do_constant_folding: false,
-            optimize_cache_use: true,
+            compile_options,
             actions: vec![],
             input_variables: HashMap::new(),
         }
@@ -67,8 +69,14 @@ impl CodeEditor {
         });
 
         ui.horizontal(|ui| {
-            ui.checkbox(&mut self.do_constant_folding, "Constant folding");
-            ui.checkbox(&mut self.optimize_cache_use, "Cache Optimization");
+            ui.checkbox(
+                &mut self.compile_options.do_constant_folding,
+                "Constant folding",
+            );
+            ui.checkbox(
+                &mut self.compile_options.run_cache_optimization,
+                "Cache Optimization",
+            );
         });
 
         ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
@@ -81,7 +89,6 @@ impl CodeEditor {
                 .on_hover_text("You can alternatively press CTRL+Enter to compile and run")
                 .clicked()
             {
-                // TODO: Cmd enter
                 self.actions.push(EditorAction::Run);
             }
 
@@ -94,7 +101,6 @@ impl CodeEditor {
             ui.separator();
             ui.heading("Input variables:");
 
-            // TODO: look nicer
             egui::Grid::new("vars")
                 .num_columns(2)
                 .spacing([40.0, 4.0])

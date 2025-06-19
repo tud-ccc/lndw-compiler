@@ -1,4 +1,7 @@
-use crate::compiler::{Inst, compile, interpret_ir};
+use crate::{
+    compiler::{CompileOptions, Compiler, Inst, interpret_ir},
+    gui::InterpreterOptions,
+};
 use eframe::egui;
 use std::collections::{HashMap, HashSet};
 
@@ -45,9 +48,14 @@ impl AssemblyOutput {
             .map_or(vec![], |v| v.iter().map(|(inst, _)| inst).collect())
     }
 
-    pub fn compile(&mut self, input: &str, constant_fold: bool) -> Result<HashSet<String>, ()> {
+    pub fn compile(
+        &mut self,
+        input: &str,
+        opts: CompileOptions,
+        hw: InterpreterOptions,
+    ) -> Result<HashSet<String>, ()> {
         self.clear();
-        let r = compile(input, constant_fold);
+        let r = Compiler::with(opts).with_interpreter(hw).compile(input);
 
         r.map(|(asm, vars)| {
             self.asm = Some(asm.iter().map(|i| (i.clone(), 0.0)).collect());
@@ -58,9 +66,14 @@ impl AssemblyOutput {
         })
     }
 
-    pub fn run(&mut self, vars: &HashMap<String, String>) {
+    pub fn run(&mut self, vars: &HashMap<String, String>, hw: InterpreterOptions) {
         self.program_result = None;
-        match interpret_ir(self.instructions(), vars) {
+
+        if self.asm.is_none() {
+            return;
+        }
+
+        match interpret_ir(self.instructions(), vars, hw) {
             Ok(r) => {
                 self.program_result = Some(r);
                 self.running = true;
