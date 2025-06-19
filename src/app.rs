@@ -4,6 +4,22 @@ use crate::gui::{AssemblyOutput, CodeEditor, EditorAction, InterpreterOptions, W
 use eframe::egui::{self, FontData, FontFamily, Modifiers, Ui};
 use eframe::epaint::text::{FontInsert, InsertFontFamily};
 
+macro_rules! add_sidebar_item {
+    ($ui: expr, $open: expr, $item: expr) => {
+        let mut is_open = $open.contains(&$item.name());
+        $ui.toggle_value(&mut is_open, $item.name());
+        set_open(&mut $open, &$item.name(), is_open);
+    };
+}
+
+macro_rules! add_window {
+    ($ctx: expr, $open: expr, $item: expr) => {
+        let mut is_open = $open.contains(&$item.name());
+        $item.show($ctx, &mut is_open);
+        set_open(&mut $open, &$item.name(), is_open);
+    };
+}
+
 fn set_open(open: &mut BTreeSet<String>, key: &str, is_open: bool) {
     if is_open {
         if !open.contains(key) {
@@ -66,26 +82,12 @@ impl eframe::App for LndwApp {
                 // window list
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                        // self.groups.checkboxes(ui, &mut self.open);
-                        let mut is_open = self.open.contains(&self.code_editor.name());
-                        ui.toggle_value(&mut is_open, self.code_editor.name());
-                        set_open(&mut self.open, &self.code_editor.name(), is_open);
-
-                        let mut is_open = self.open.contains(&self.asm_unoptimized.name());
-                        ui.toggle_value(&mut is_open, self.asm_unoptimized.name());
-                        set_open(&mut self.open, &self.asm_unoptimized.name(), is_open);
-
-                        let mut is_open = self.open.contains(&self.asm_optimized.name());
-                        ui.toggle_value(&mut is_open, self.asm_optimized.name());
-                        set_open(&mut self.open, &self.asm_optimized.name(), is_open);
-
-                        let mut is_open = self.open.contains(&self.interpreter_options.name());
-                        ui.toggle_value(&mut is_open, self.interpreter_options.name());
-                        set_open(&mut self.open, &self.interpreter_options.name(), is_open);
+                        add_sidebar_item!(ui, self.open, self.code_editor);
+                        add_sidebar_item!(ui, self.open, self.asm_unoptimized);
+                        add_sidebar_item!(ui, self.open, self.asm_optimized);
+                        add_sidebar_item!(ui, self.open, self.interpreter_options);
 
                         ui.toggle_value(&mut false, "Optimizations");
-
-                        // TODO: set open when compile/run
 
                         ui.separator();
                         if ui.button("Organize windows").clicked() {
@@ -101,9 +103,7 @@ impl eframe::App for LndwApp {
             });
         });
 
-        let mut is_open = self.open.contains(&self.code_editor.name());
-        self.code_editor.show(ctx, &mut is_open);
-        set_open(&mut self.open, &self.code_editor.name(), is_open);
+        add_window!(ctx, self.open, self.code_editor);
 
         // code actions?
         for action in self.code_editor.actions.drain(..) {
@@ -138,17 +138,9 @@ impl eframe::App for LndwApp {
             }
         }
 
-        let mut is_open = self.open.contains(&self.asm_unoptimized.name());
-        self.asm_unoptimized.show(ctx, &mut is_open);
-        set_open(&mut self.open, &self.asm_unoptimized.name(), is_open);
-
-        let mut is_open = self.open.contains(&self.asm_optimized.name());
-        self.asm_optimized.show(ctx, &mut is_open);
-        set_open(&mut self.open, &self.asm_optimized.name(), is_open);
-
-        let mut is_open = self.open.contains(&self.interpreter_options.name());
-        self.interpreter_options.show(ctx, &mut is_open);
-        set_open(&mut self.open, &self.interpreter_options.name(), is_open);
+        add_window!(ctx, self.open, self.asm_unoptimized);
+        add_window!(ctx, self.open, self.asm_optimized);
+        add_window!(ctx, self.open, self.interpreter_options);
 
         egui::CentralPanel::default().show(ctx, |_| {});
     }
