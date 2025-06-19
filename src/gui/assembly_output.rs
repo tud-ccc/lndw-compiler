@@ -127,7 +127,7 @@ impl AssemblyOutput {
 
         if self.running {
             ui.separator();
-            ui.label(format!("Total time: {}", self.total_time.round()));
+            ui.label(format!("Total time: {} s", self.total_time.round()));
         }
         if done {
             ui.separator();
