@@ -7,8 +7,11 @@ use crate::{
     types::{Inst, LpErr, Reg},
 };
 
+/// State of the interpreter after executing a single execution step.
 pub enum InterpreterState {
+    /// Continue execution with the next instruction.
     Continue,
+    /// The execution terminated successfully.
     Finished(i32),
 }
 
@@ -18,17 +21,26 @@ impl From<i32> for InterpreterState {
     }
 }
 
+/// Interpreter for our custom ISA.
+///
+/// The interpreters stores the memory layout at each step and thus enables introspection.
 pub struct Interpreter<'a> {
+    /// The register store.
     pub reg_store: HashMap<Reg, i32>,
+    /// Slow cache used for out-of-register storage.
     pub ram: Vec<i32>,
 
+    /// Instruction list to be executed.
     instructions: Vec<&'a Inst>,
+    /// Program counter pointing to the next instruction to be executed.
     program_counter: usize,
 
+    /// Input variable mapping.
     input_variables: Option<&'a HashMap<String, String>>,
 }
 
 impl<'a> Interpreter<'a> {
+    /// Instantiates a new interpreter with the given hardware configuration.
     pub fn with_config(hw: &InterpreterOptions) -> Self {
         Self {
             reg_store: Default::default(),
@@ -39,16 +51,19 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    /// Loads a list of instructions into the interpreter.
     pub fn load_instructions(mut self, instructions: Vec<&'a Inst>) -> Self {
         self.instructions = instructions;
         self
     }
 
+    /// Maps inputs to variables.
     pub fn with_variables(mut self, input_variables: &'a HashMap<String, String>) -> Self {
         self.input_variables = Some(input_variables);
         self
     }
 
+    /// Executes the instruction list until the interpreter either terminates or encounters a critical error.
     pub fn run_to_end(mut self) -> Result<i32, LpErr> {
         loop {
             match self.step()? {
@@ -58,6 +73,7 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    /// Executes a single step of the program.
     pub fn step(&mut self) -> Result<InterpreterState, LpErr> {
         println!("Variable store is: {:?}", self.reg_store);
         match self.instructions[self.program_counter] {
