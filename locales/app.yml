@@ -1,48 +1,53 @@
 _version: 2
-app.name:
-  en: Long night of sciences
-  de: Lange Nacht der Wissenschaften
-app.english:
-  en: English
-  de: Englisch
-app.german:
-  en: German
-  de: Deutsch
-app.tools:
-  en: Tools
-app.optimizations:
-  en: Optimizations
-  de: Optimierungen
-app.organize:
-  en: Organize windows
-  de: Fenster ordnen
-app.reset:
-  en: Reset egui memory
-app.forget:
-  en: Forget scroll, positions, sizes etc
-name.code_editor:
-  en: Code editor
-  de: Code-Editor
-output.unopt:
-  en: Unoptimized output
-  de: Unoptimierter output???
-output.opt:
-  en: Optimized output
-  de: Optimierter output???
-output.empty:
-  en: Assembly output will be here
-output.time:
-  en: "Total time: %{t} sec"
-  de: "Gesamtdauer: %{t} s"
-output.result:
-  en: Program result is %{res}
-  de: Ergebnis ist %{res}
+app:
+  name:
+    en: Long night of sciences
+    de: Lange Nacht der Wissenschaften
+  english:
+    en: English
+    de: Englisch
+  german:
+    en: German
+    de: Deutsch
+  tools:
+    en: Tools
+    de: Fenster
+  optimizations:
+    en: Optimizations
+    de: Optimierungen
+  organize:
+    en: Organize windows
+    de: Fenster ordnen
+  reset:
+    en: Reset egui memory
+  forget:
+    en: Forget scroll, positions, sizes etc
+output:
+  unopt:
+    en: Unoptimized output
+    de: Unoptimierter Ausgabe
+  opt:
+    en: Optimized output
+    de: Optimierter Ausgabe
+  empty:
+    en: Assembly output will be here
+    de: Die Assembler-Ausgabe wird hier erscheinen
+  time:
+    en: "Total time: %{t} sec"
+    de: "Gesamtdauer: %{t} s"
+  result:
+    en: Program result is %{res}
+    de: Ergebnis ist %{res}
 editor:
+  name:
+    en: 🖮 Code Editor
+    de: 🖮 Code-Editor
   explain:
     en: You can write your expressions in this TextEdit box.
     de: In dieses Textfeld können Sie einen Ausdruck schreiben.
   constant_folding:
     en: Constant folding
+    de: Konstantenfaltung
   cache_opt:
     en: Cache optimization
     de: Cache-Optimierung
@@ -57,6 +62,7 @@ editor:
     de: Ausführen!
   run.alt:
     en: You can alternatively press CTRL+Enter to compile and run
+    de: Alternativ können Sie CTRL+Enter drücken, um zu kompilieren und auszuführen
   clear:
     en: Clear
     de: Löschen
@@ -71,6 +77,9 @@ compiler:
     unknownvar:
       en: unknown variable
       de: unbekannte Variable `%{v}`
+    invalid_unary:
+      en: invalid unary operator `%{op}`
+      de: ungültiger unärer Operator `%{op}`
   inst:
     add:
       en: add register %{a} to register %{b}
@@ -99,3 +108,25 @@ compiler:
     load:
       en: load main memory cell %{addr} into register %{r}
       de: Laden der Hauptspeicherzelle %{addr} in das Register %{r}
+interp_opts:
+  name:
+    en: Interpreter options
+    de: Interpreter-Optionen
+  label:
+    en: These are the settings for the Interpreter executing the code. Change them and see how the compile results change with more or less cache lines or registers.
+    de: Dies sind die Einstellungen für den Interpreter, der den Code ausführt. Ändern Sie sie und sehen Sie, wie sich die Kompilierergebnisse mit mehr oder weniger Cache-Zeilen oder Registern ändern.
+  explanation:
+    en: Explanation
+    de: Erläuterung
+  n_regs:
+    en: Register count
+    de: Anzahl der Registern
+  label_regs:
+    en: A computer processor can remember a fixed number of things. They work like post-its on your monitor. There's space for a few and you have them always ready.
+    de: Ein Computerprozessor kann sich eine bestimmte Anzahl von Dingen merken. Sie funktionieren wie Post-its auf dem Monitor. Da ist Platz für ein paar und man hat sie immer parat.
+  cache_size:
+    en: Cache size
+    de: Cache-Größe
+  cache_label:
+    en: If all registers are full, computers have larger storages, called caches. While they're bigger, they're also slower to access. Think of them like big binders of files. They can hold a lot of paper, but finding a specific page takes time.
+    de: Wenn alle Register voll sind, haben Computer größere Speicher, die so genannten Caches. Sie sind zwar größer, aber der Zugriff auf sie ist auch langsamer. Stellen Sie sich diese Speicher wie große Aktenordner vor. Sie können eine Menge Papier aufnehmen, aber das Auffinden einer bestimmten Seite braucht Zeit.

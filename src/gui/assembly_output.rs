@@ -122,7 +122,7 @@ impl AssemblyOutput {
         egui::ScrollArea::vertical()
             .max_height(ui.available_height() - 40.0)
             .show(ui, |ui| {
-                egui::Grid::new("unoptimized_output")
+                egui::Grid::new(self.heading.clone())
                     .num_columns(2)
                     .spacing([10.0, 4.0])
                     .min_col_width(30.0)
@@ -142,7 +142,6 @@ impl AssemblyOutput {
 
         if self.running {
             ui.separator();
-            // ui.label(format!("{}: {} s", t!("output.time"), self.total_time.round()));
             ui.label(t!("output.time", t = self.total_time.round()));
         }
         if done {

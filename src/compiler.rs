@@ -216,7 +216,7 @@ impl Compiler {
 
                 Ok(right_reg)
             }
-            Expr::UnaryOp(op, _) => Err(LpErr::IR(format!("invalid unary operator `{op}`"))),
+            Expr::UnaryOp(op, _) => Err(LpErr::IR(t!("compiler.error.invalid_unary", op = op).to_string())),
             Expr::BinaryOp(left, op, right) => {
                 let mut left_reg =
                     self.ast_to_ir(left, next_reg, ram_idx, code, variables, mmap, rmap)?;

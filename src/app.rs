@@ -2,14 +2,14 @@ use std::collections::BTreeSet;
 
 use crate::compiler::CompileOptions;
 use crate::gui::{AssemblyOutput, CodeEditor, EditorAction, InterpreterOptions, Window};
-use eframe::egui::{self, FontData, FontFamily, Modifiers, Ui};
+use eframe::egui::{self, FontData, FontFamily, Modifiers, Ui, ViewportCommand};
 use eframe::epaint::text::{FontInsert, InsertFontFamily};
 use rust_i18n::t;
 
 macro_rules! add_sidebar_item {
     ($ui: expr, $open: expr, $item: expr) => {
         let mut is_open = $open.contains(&$item.name());
-        $ui.toggle_value(&mut is_open, $item.name());
+        $ui.toggle_value(&mut is_open, t!($item.name()));
         set_open(&mut $open, &$item.name(), is_open);
     };
 }
@@ -220,9 +220,11 @@ fn file_menu_button(ui: &mut Ui, lang: &mut String) {
     if ui.selectable_label(lang.as_str() == "de", t!("app.german")).clicked() {
         rust_i18n::set_locale("de");
         *lang = "de".to_string();
+        ui.ctx().send_viewport_cmd(ViewportCommand::Title(t!("app.name").to_string()));
     }
     if ui.selectable_label(lang.as_str() == "en", t!("app.english")).clicked() {
         rust_i18n::set_locale("en");
         *lang = "en".to_string();
+        ui.ctx().send_viewport_cmd(ViewportCommand::Title(t!("app.name").to_string()));
     }
 }

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::compiler::CompileOptions;
-use eframe::egui::{self, Align, Layout, Modifiers};
+use eframe::egui::{self, Align, Id, Layout, Modifiers};
 use rust_i18n::t;
 
 pub enum EditorAction {
@@ -32,11 +32,12 @@ impl Default for CodeEditor {
 
 impl crate::gui::Window for CodeEditor {
     fn name(&self) -> String {
-        "🖮 Code Editor".into()
+        "editor.name".into()
     }
 
     fn show(&mut self, ctx: &egui::Context, open: &mut bool) {
-        egui::Window::new(self.name())
+        egui::Window::new(t!(self.name()))
+            .id(Id::new(self.name()))
             .open(open)
             .default_height(500.0)
             .show(ctx, |ui| self.ui(ui));
