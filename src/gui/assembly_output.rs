@@ -3,9 +3,9 @@ use crate::{
     gui::InterpreterOptions,
 };
 use eframe::egui;
-use std::collections::{HashMap, HashSet};
 use eframe::egui::Id;
 use rust_i18n::t;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 pub struct AssemblyOutput {
@@ -106,6 +106,8 @@ impl AssemblyOutput {
                     Inst::Sub(_, _) => 0.03333,
                     Inst::Mul(_, _) => 0.01667,
                     Inst::Div(_, _) => 0.00833,
+                    Inst::Shl(_, _) => 0.03333,
+                    Inst::Shr(_, _) => 0.03333,
                     Inst::Store(_, _) => 0.0667,
                     Inst::Transfer(_, _) => 0.0667,
                     Inst::Result(_) => 0.0667,

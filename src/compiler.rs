@@ -1,6 +1,8 @@
 use crate::gui::InterpreterOptions;
 use crate::parser;
-use crate::passes::{CommonFactorElimination, ConstantFold, run_cache_optimization};
+use crate::passes::{
+    CommonFactorElimination, ConstantFold, ShiftReplacement, run_cache_optimization,
+};
 pub use crate::types::*;
 use rust_i18n::t;
 use std::collections::{HashMap, HashSet};
@@ -12,11 +14,15 @@ pub struct CompileOptions {
     pub do_constant_folding: bool,
     pub run_cache_optimization: bool,
     pub do_common_factor_elimination: bool,
+    pub do_shift_replacement: bool,
 }
 
 impl CompileOptions {
     pub fn any(&self) -> bool {
-        self.do_constant_folding || self.run_cache_optimization || self.do_common_factor_elimination
+        self.do_constant_folding
+            || self.run_cache_optimization
+            || self.do_common_factor_elimination
+            || self.do_shift_replacement
     }
 }
 
@@ -46,6 +52,10 @@ impl Compiler {
 
         if self.options.do_common_factor_elimination {
             ast = ast.extract_common_factors();
+        }
+
+        if self.options.do_shift_replacement {
+            ast = ast.replace_multiplications_with_bitshifts();
         }
 
         let (mut instructions, variables) = self.generate_ir(&ast)?;
@@ -231,6 +241,8 @@ impl Compiler {
                     Operator::Sub => Inst::Sub(u8tochar(left_reg), u8tochar(right_reg)),
                     Operator::Mul => Inst::Mul(u8tochar(left_reg), u8tochar(right_reg)),
                     Operator::Div => Inst::Div(u8tochar(left_reg), u8tochar(right_reg)),
+                    Operator::Shl => Inst::Shl(u8tochar(left_reg), u8tochar(right_reg)),
+                    Operator::Shr => Inst::Shr(u8tochar(left_reg), u8tochar(right_reg)),
                 };
 
                 code.push(inst);
@@ -287,6 +299,8 @@ pub fn interpret_ir(
                 }
                 run_binop(*a, *b, i32::div, &mut reg_store)?
             }
+            Inst::Shl(a, b) => run_shiftop(*a, *b, i32::unbounded_shl, &mut reg_store)?,
+            Inst::Shr(a, b) => run_shiftop(*a, *b, i32::unbounded_shr, &mut reg_store)?,
             Inst::Store(n, reg) => {
                 if reg_store.contains_key(reg) {
                     eprintln!("Warning: overwriting register `{reg}`.");
@@ -362,6 +376,21 @@ fn run_binop(
     check_store_contains(reg_store, b)?;
     if let Some(b) = reg_store.get_mut(&b) {
         *b = op(a, *b);
+    }
+    Ok(())
+}
+
+fn run_shiftop(
+    a: Reg,
+    b: Reg,
+    op: impl FnOnce(i32, u32) -> i32,
+    reg_store: &mut HashMap<Reg, i32>,
+) -> Result<(), LpErr> {
+    let a = check_store_contains(reg_store, a)?;
+    check_store_contains(reg_store, b)?;
+
+    if let Some(b) = reg_store.get_mut(&b) {
+        *b = op(a, *b as u32);
     }
     Ok(())
 }

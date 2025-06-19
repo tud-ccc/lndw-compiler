@@ -69,7 +69,7 @@ impl CodeEditor {
             );
         });
 
-        ui.horizontal(|ui| {
+        ui.vertical(|ui| {
             ui.checkbox(
                 &mut self.compile_options.do_constant_folding,
                 t!("editor.constant_folding"),
@@ -81,7 +81,11 @@ impl CodeEditor {
             ui.checkbox(
                 &mut self.compile_options.do_common_factor_elimination,
                 t!("editor.common_factor_elimination"),
-            )
+            );
+            ui.checkbox(
+                &mut self.compile_options.do_shift_replacement,
+                t!("editor.replace_mul_with_shift"),
+            );
         });
 
         ui.with_layout(Layout::left_to_right(Align::Min), |ui| {

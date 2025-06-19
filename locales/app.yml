@@ -54,6 +54,9 @@ editor:
   common_factor_elimination:
     en: Common Factor Extraction
     de: Faktorisierung
+  replace_mul_with_shift:
+    en: Replace factors with bitshifts
+    de: Ersetze Faktoren durch Bit-Verschiebung
   compile:
     en: Compile!
     de: Kompilieren!
@@ -93,6 +96,12 @@ compiler:
     div:
       en: divide register %{a} by register %{b}
       de: Register %{a} durch Register %{b} dividieren
+    shl:
+      en: shift value in register %{a} left by value in register %{b}
+      de: Register %{a} um Register %{b} nach links schieben
+    shr:
+      en: shift value in register %{a} right by value in register %{b}
+      de: Register %{a} um Register %{b} nach rechts schieben
     store:
       en: store the number %{n} in register %{r}
       de: die Zahl %{n} im Register %{r} speichern

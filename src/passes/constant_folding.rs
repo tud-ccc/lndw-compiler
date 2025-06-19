@@ -51,10 +51,12 @@ impl ConstantFold for Expr {
                         Operator::Mul => left * right,
                         Operator::Div => {
                             if right == 0 {
-                                return Expr::BinaryOp(Box::new(l), operator, Box::new(r))
+                                return Expr::BinaryOp(Box::new(l), operator, Box::new(r));
                             }
                             left / right
-                        },
+                        }
+                        Operator::Shl => left << right,
+                        Operator::Shr => left >> right,
                     };
                     return res.into();
                 }

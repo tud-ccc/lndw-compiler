@@ -1,5 +1,5 @@
-use std::fmt::{Display, Formatter};
 use rust_i18n::t;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
 pub enum LpErr {
@@ -24,6 +24,10 @@ pub enum Operator {
     Sub,
     Mul,
     Div,
+    /// Left Shift, aka <<
+    Shl,
+    /// Right Shift, aka >>
+    Shr,
 }
 
 impl TryFrom<char> for Operator {
@@ -47,6 +51,8 @@ impl Display for Operator {
             Operator::Sub => write!(f, "-"),
             Operator::Mul => write!(f, "*"),
             Operator::Div => write!(f, "/"),
+            Operator::Shl => write!(f, "<<"),
+            Operator::Shr => write!(f, ">>"),
         }
     }
 }
@@ -85,6 +91,10 @@ pub enum Inst {
     Mul(Reg, Reg),
     /// Divide two values, storing the result in Register #2.
     Div(Reg, Reg),
+    /// Shift the value in register #2 to the left by the number of bits stated in register #1.
+    Shl(Reg, Reg),
+    /// Shift the value in register #2 to the right by the number of bits stated in register #1.
+    Shr(Reg, Reg),
     /// Store a number in a register.
     Store(i32, Reg),
     /// Transfer a value into a register.
@@ -105,6 +115,8 @@ impl Display for Inst {
             Inst::Sub(a, b) => f.write_str(&t!("compiler.inst.sub", a = a, b = b)),
             Inst::Mul(a, b) => f.write_str(&t!("compiler.inst.mul", a = a, b = b)),
             Inst::Div(a, b) => f.write_str(&t!("compiler.inst.div", a = a, b = b)),
+            Inst::Shl(a, b) => f.write_str(&t!("compiler.inst.shl", a = a, b = b)),
+            Inst::Shr(a, b) => f.write_str(&t!("compiler.inst.shr", a = a, b = b)),
             Inst::Store(n, r) => f.write_str(&t!("compiler.inst.store", n = n, r = r)),
             Inst::Transfer(v, r) => f.write_str(&t!("compiler.inst.transfer", v = v, r = r)),
             Inst::Result(r) => f.write_str(&t!("compiler.inst.result", r = r)),

@@ -3,9 +3,11 @@ use std::collections::HashSet;
 
 mod common_factor_elimination;
 mod constant_folding;
+mod shift_replacement;
 
 pub use common_factor_elimination::CommonFactorElimination;
 pub use constant_folding::ConstantFold;
+pub use shift_replacement::ShiftReplacement;
 
 /// Remove cache writes of lines that are never loaded
 pub fn run_cache_optimization(instructions: Vec<Inst>) -> Vec<Inst> {
