@@ -108,11 +108,6 @@ impl<'a> Interpreter<'a> {
                     t!("compiler.error.unkownvar", v = v).to_string(),
                 ));
             }
-            Inst::Transfer(_, r) if self.reg_store.contains_key(r) => {
-                return Err(LpErr::Interpret(format!(
-                    "register `{r}` already contains value"
-                )));
-            }
             Inst::Transfer(var, reg) => {
                 let val_str = self
                     .input_variables
@@ -121,7 +116,14 @@ impl<'a> Interpreter<'a> {
                 let val = val_str
                     .parse::<i32>()
                     .map_err(|_| LpErr::Interpret(format!("`{val_str}` is not a number")))?;
-                self.reg_store.insert(*reg, val);
+                if self.reg_store.contains_key(reg) {
+                    eprintln!("Warning: overwriting register `{reg}`.");
+                    if let Some(v) = self.reg_store.get_mut(reg) {
+                        *v = val;
+                    }
+                } else {
+                    self.reg_store.insert(*reg, val);
+                }
             }
             Inst::Result(r) => {
                 return Ok((*self
