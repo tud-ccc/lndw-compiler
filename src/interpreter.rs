@@ -37,6 +37,14 @@ pub struct Interpreter {
 
     /// Input variable mapping.
     input_variables: Option<HashMap<String, String>>,
+
+    /// String representation of the current computation
+    ///
+    /// Needs to be enabled.
+    str_repr: String,
+
+    /// Whether string representations should be stored during computation
+    repr_enabled: bool,
 }
 
 impl Interpreter {
@@ -48,18 +56,31 @@ impl Interpreter {
             instructions: Vec::with_capacity(0),
             program_counter: 0,
             input_variables: None,
+            str_repr: String::with_capacity(0),
+            repr_enabled: false,
         }
     }
 
     /// Loads a list of instructions into the interpreter.
     pub fn load_instructions(mut self, instructions: Vec<Inst>) -> Self {
         self.instructions = instructions;
+        if self.repr_enabled {
+            self.str_repr = self.cur_as_string();
+        }
         self
     }
 
     /// Maps inputs to variables.
     pub fn with_variables(mut self, input_variables: HashMap<String, String>) -> Self {
         self.input_variables = Some(input_variables);
+        self
+    }
+
+    pub fn with_tracing(mut self) -> Self {
+        self.repr_enabled = true;
+        if !self.instructions.is_empty() {
+            self.str_repr = self.cur_as_string();
+        }
         self
     }
 
@@ -76,6 +97,14 @@ impl Interpreter {
     /// Executes a single step of the program.
     pub fn step(&mut self) -> Result<InterpreterState, LpErr> {
         println!("Variable store is: {:?}", self.reg_store);
+        if self.program_counter >= self.instructions.len() {
+            return Err(LpErr::Interpret("no result found".to_string()));
+        }
+
+        if self.repr_enabled {
+            self.str_repr = self.cur_as_string();
+        }
+
         match &self.instructions[self.program_counter] {
             Inst::Add(a, b) => run_binop(*a, *b, i32::add, &mut self.reg_store)?,
             Inst::Sub(a, b) => run_binop(*a, *b, i32::sub, &mut self.reg_store)?,
@@ -160,30 +189,29 @@ impl Interpreter {
                     .or_insert(self.ram[*addr]);
             }
         }
-        // Err(LpErr::Interpret("no result found".to_string()))
 
         self.program_counter += 1;
         Ok(InterpreterState::Continue)
     }
 
-    pub fn cur_as_string(&self) -> String {
-        let pc = if self.program_counter > 0 {
-            self.program_counter - 1
-        } else {
-            0
-        };
-        match &self.instructions[pc] {
+    fn cur_as_string(&self) -> String {
+        // let pc = if self.program_counter > 0 {
+        //     self.program_counter - 1
+        // } else {
+        //     0
+        // };
+        match &self.instructions[self.program_counter] {
             Inst::Add(a, b) => self.display_binop(a, b, "+"),
             Inst::Sub(a, b) => self.display_binop(a, b, "-"),
             Inst::Mul(a, b) => self.display_binop(a, b, "*"),
             Inst::Div(a, b) => self.display_binop(a, b, "/"),
             Inst::Shl(a, b) => self.display_binop(a, b, "<<"),
             Inst::Shr(a, b) => self.display_binop(a, b, ">>"),
-            Inst::Store(num, a) => format!("{num} ➡ {a}"),
-            Inst::Transfer(var, a) => format!("{var} ➡ {a}"),
+            Inst::Store(num, a) => format!("{num} ➡ [{a}]"),
+            Inst::Transfer(var, a) => format!("{var} ➡ [{a}]"),
             Inst::Result(a) => format!("= {}", self.reg_store.get(a).unwrap()),
-            Inst::Write(reg, addr) => format!("⎘ {reg} ➡ {addr}"),
-            Inst::Load(addr, reg) => format!("⎗ {reg} ⬅ {addr}"),
+            Inst::Write(reg, addr) => format!("⎘ [{reg}] ➡ [{addr}]"),
+            Inst::Load(addr, reg) => format!("⎗ [{reg}] ⬅ [{addr}]"),
         }
     }
 
@@ -193,6 +221,10 @@ impl Interpreter {
             self.reg_store.get(a).unwrap(),
             self.reg_store.get(b).unwrap()
         )
+    }
+
+    pub fn display_current<'a>(&'a self) -> &'a str {
+        &self.str_repr
     }
 
     #[allow(dead_code)]

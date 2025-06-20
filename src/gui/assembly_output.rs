@@ -96,7 +96,8 @@ impl AssemblyOutput {
                     self.interpreter = Some(
                         Interpreter::with_config(&hw)
                             .load_instructions(self.instructions())
-                            .with_variables(vars.to_owned()),
+                            .with_variables(vars.to_owned())
+                            .with_tracing(),
                     );
                 }
             }
@@ -184,7 +185,12 @@ impl AssemblyOutput {
                     let ram_size = self.hw.as_ref().unwrap().num_cachelines;
                     // Find out what is the highest-index nonzero ram cell
                     let end = self.interpreter.as_ref().map_or(0, |i| {
-                        i.ram.iter().enumerate().rev().find_map(|(i, r)| if *r != 0 { Some(i) } else { None }).unwrap_or(0)
+                        i.ram
+                            .iter()
+                            .enumerate()
+                            .rev()
+                            .find_map(|(i, r)| if *r != 0 { Some(i) } else { None })
+                            .unwrap_or(0)
                     });
                     println!("end is {end}");
                     let ram_size_display = (end + 1).max(4).min(ram_size);
@@ -215,7 +221,7 @@ impl AssemblyOutput {
 
                 ui.vertical_centered(|ui| {
                     ui.heading(t!("output.executing"));
-                    
+
                     let visuals = ui.style().noninteractive();
                     let text_color = visuals.text_color();
 
@@ -233,13 +239,13 @@ impl AssemblyOutput {
                                         "{}",
                                         self.interpreter
                                             .as_ref()
-                                            .map_or(" ".into(), |i| i.cur_as_string())
+                                            .map_or(" ".into(), |i| i.display_current())
                                     ))
-                                        .color(text_color)
-                                        .size(32.0),
+                                    .color(text_color)
+                                    .size(32.0),
                                 )
-                                    .selectable(false)
-                                    .ui(ui);
+                                .selectable(false)
+                                .ui(ui);
                             });
                             ui.add_space(32.0);
                         });
