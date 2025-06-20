@@ -280,7 +280,7 @@ impl Compiler {
     }
 }
 
-fn u8tochar(reg: u8) -> char {
+pub fn u8tochar(reg: u8) -> char {
     char::from_digit(reg as u32 + 10, 36).unwrap()
 }
 

@@ -139,12 +139,10 @@ impl eframe::App for LndwApp {
                 }
                 EditorAction::Run => {
                     set_open(&mut self.open, &self.asm_unoptimized.name(), true);
-                    self.asm_unoptimized
-                        .run(&self.code_editor.input_variables, self.interpreter_options);
+                    self.asm_unoptimized.run(&self.code_editor.input_variables);
                     if self.code_editor.compile_options.any() {
                         set_open(&mut self.open, &self.asm_optimized.name(), true);
-                        self.asm_optimized
-                            .run(&self.code_editor.input_variables, self.interpreter_options);
+                        self.asm_optimized.run(&self.code_editor.input_variables);
                     }
                 }
                 EditorAction::Clear => {
@@ -217,14 +215,22 @@ fn file_menu_button(ui: &mut Ui, lang: &mut String) {
         }
     });
 
-    if ui.selectable_label(lang.as_str() == "de", t!("app.german")).clicked() {
+    if ui
+        .selectable_label(lang.as_str() == "de", t!("app.german"))
+        .clicked()
+    {
         rust_i18n::set_locale("de");
         *lang = "de".to_string();
-        ui.ctx().send_viewport_cmd(ViewportCommand::Title(t!("app.name").to_string()));
+        ui.ctx()
+            .send_viewport_cmd(ViewportCommand::Title(t!("app.name").to_string()));
     }
-    if ui.selectable_label(lang.as_str() == "en", t!("app.english")).clicked() {
+    if ui
+        .selectable_label(lang.as_str() == "en", t!("app.english"))
+        .clicked()
+    {
         rust_i18n::set_locale("en");
         *lang = "en".to_string();
-        ui.ctx().send_viewport_cmd(ViewportCommand::Title(t!("app.name").to_string()));
+        ui.ctx()
+            .send_viewport_cmd(ViewportCommand::Title(t!("app.name").to_string()));
     }
 }

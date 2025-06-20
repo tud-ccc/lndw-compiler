@@ -24,22 +24,22 @@ impl From<i32> for InterpreterState {
 /// Interpreter for our custom ISA.
 ///
 /// The interpreters stores the memory layout at each step and thus enables introspection.
-pub struct Interpreter<'a> {
+pub struct Interpreter {
     /// The register store.
     pub reg_store: HashMap<Reg, i32>,
     /// Slow cache used for out-of-register storage.
     pub ram: Vec<i32>,
 
     /// Instruction list to be executed.
-    instructions: Vec<&'a Inst>,
+    instructions: Vec<Inst>,
     /// Program counter pointing to the next instruction to be executed.
     program_counter: usize,
 
     /// Input variable mapping.
-    input_variables: Option<&'a HashMap<String, String>>,
+    input_variables: Option<HashMap<String, String>>,
 }
 
-impl<'a> Interpreter<'a> {
+impl Interpreter {
     /// Instantiates a new interpreter with the given hardware configuration.
     pub fn with_config(hw: &InterpreterOptions) -> Self {
         Self {
@@ -52,13 +52,13 @@ impl<'a> Interpreter<'a> {
     }
 
     /// Loads a list of instructions into the interpreter.
-    pub fn load_instructions(mut self, instructions: Vec<&'a Inst>) -> Self {
+    pub fn load_instructions(mut self, instructions: Vec<Inst>) -> Self {
         self.instructions = instructions;
         self
     }
 
     /// Maps inputs to variables.
-    pub fn with_variables(mut self, input_variables: &'a HashMap<String, String>) -> Self {
+    pub fn with_variables(mut self, input_variables: HashMap<String, String>) -> Self {
         self.input_variables = Some(input_variables);
         self
     }
@@ -76,7 +76,7 @@ impl<'a> Interpreter<'a> {
     /// Executes a single step of the program.
     pub fn step(&mut self) -> Result<InterpreterState, LpErr> {
         println!("Variable store is: {:?}", self.reg_store);
-        match self.instructions[self.program_counter] {
+        match &self.instructions[self.program_counter] {
             Inst::Add(a, b) => run_binop(*a, *b, i32::add, &mut self.reg_store)?,
             Inst::Sub(a, b) => run_binop(*a, *b, i32::sub, &mut self.reg_store)?,
             Inst::Mul(a, b) => run_binop(*a, *b, i32::mul, &mut self.reg_store)?,
@@ -89,9 +89,9 @@ impl<'a> Interpreter<'a> {
             Inst::Shl(a, b) => run_shiftop(*a, *b, i32::unbounded_shl, &mut self.reg_store)?,
             Inst::Shr(a, b) => run_shiftop(*a, *b, i32::unbounded_shr, &mut self.reg_store)?,
             Inst::Store(n, reg) => {
-                if self.reg_store.contains_key(reg) {
+                if self.reg_store.contains_key(&reg) {
                     eprintln!("Warning: overwriting register `{reg}`.");
-                    if let Some(v) = self.reg_store.get_mut(reg) {
+                    if let Some(v) = self.reg_store.get_mut(&reg) {
                         *v = *n;
                     }
                 } else {
@@ -101,6 +101,7 @@ impl<'a> Interpreter<'a> {
             Inst::Transfer(v, _)
                 if !self
                     .input_variables
+                    .as_ref()
                     .ok_or(LpErr::Interpret("No variables loaded".into()))?
                     .contains_key(v) =>
             {
@@ -111,15 +112,18 @@ impl<'a> Interpreter<'a> {
             Inst::Transfer(var, reg) => {
                 let val_str = self
                     .input_variables
+                    .as_ref()
                     .ok_or(LpErr::Interpret("No variables loaded".into()))?[var]
                     .clone();
-                let val = val_str
-                    .parse::<i32>()
-                    .map_err(|_| if val_str.is_empty() {
+                let val = val_str.parse::<i32>().map_err(|_| {
+                    if val_str.is_empty() {
                         LpErr::Interpret(t!("compiler.error.empty_var", v = var).into())
-                    } else { 
-                        LpErr::Interpret(t!("compiler.error.nan_var", var = var, val = val_str).into())
-                    })?;
+                    } else {
+                        LpErr::Interpret(
+                            t!("compiler.error.nan_var", var = var, val = val_str).into(),
+                        )
+                    }
+                })?;
                 if self.reg_store.contains_key(reg) {
                     eprintln!("Warning: overwriting register `{reg}`.");
                     if let Some(v) = self.reg_store.get_mut(reg) {
@@ -130,9 +134,10 @@ impl<'a> Interpreter<'a> {
                 }
             }
             Inst::Result(r) => {
+                self.program_counter += 1;
                 return Ok((*self
                     .reg_store
-                    .get(r)
+                    .get(&r)
                     .ok_or(LpErr::Interpret(format!("register `{r}` is empty")))?)
                 .into());
             }
@@ -142,7 +147,7 @@ impl<'a> Interpreter<'a> {
                 )));
             }
             Inst::Write(r, addr) => {
-                if let Some(val) = self.reg_store.get(r) {
+                if let Some(val) = self.reg_store.get(&r) {
                     self.ram[*addr] = *val;
                 } else {
                     return Err(LpErr::Interpret(format!("register `{r}` is empty")));
@@ -159,6 +164,42 @@ impl<'a> Interpreter<'a> {
 
         self.program_counter += 1;
         Ok(InterpreterState::Continue)
+    }
+
+    pub fn cur_as_string(&self) -> String {
+        let pc = if self.program_counter > 0 {
+            self.program_counter - 1
+        } else {
+            0
+        };
+        match &self.instructions[pc] {
+            Inst::Add(a, b) => self.display_binop(a, b, "+"),
+            Inst::Sub(a, b) => self.display_binop(a, b, "-"),
+            Inst::Mul(a, b) => self.display_binop(a, b, "*"),
+            Inst::Div(a, b) => self.display_binop(a, b, "/"),
+            Inst::Shl(a, b) => self.display_binop(a, b, "<<"),
+            Inst::Shr(a, b) => self.display_binop(a, b, ">>"),
+            Inst::Store(num, a) => format!("{num} ➡ {a}"),
+            Inst::Transfer(var, a) => format!("{var} ➡ {a}"),
+            Inst::Result(a) => format!("= {}", self.reg_store.get(a).unwrap()),
+            Inst::Write(reg, addr) => format!("⎘ {reg} ➡ {addr}"),
+            Inst::Load(addr, reg) => format!("⎗ {reg} ⬅ {addr}"),
+        }
+    }
+
+    fn display_binop(&self, a: &Reg, b: &Reg, op: &str) -> String {
+        format!(
+            "{} {op} {}",
+            self.reg_store.get(a).unwrap(),
+            self.reg_store.get(b).unwrap()
+        )
+    }
+
+    #[allow(dead_code)]
+    pub fn reset(&mut self) {
+        self.program_counter = 0;
+        self.ram = self.ram.iter().map(|_| 0).collect();
+        self.reg_store.clear();
     }
 }
 
