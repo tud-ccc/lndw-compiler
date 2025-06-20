@@ -94,7 +94,7 @@ impl Examples {
         res.examples.push(Example {
             title: "examples.ram_opt.title",
             desc: "examples.ram_opt.desc",
-            input: "(1000 + 2) * 4 * 5 + (15 / 3) + 17 * 13 - 8 * 2",
+            input: "(1000 + 2) * (4 * 5 + (15 / 3) + 17 * 13 - 8 * 2)",
             options: CompileOptions {
                 do_constant_folding: false,
                 run_cache_optimization: true,
