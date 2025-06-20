@@ -105,7 +105,7 @@ impl<'a> Interpreter<'a> {
                     .contains_key(v) =>
             {
                 return Err(LpErr::Interpret(
-                    t!("compiler.error.unkownvar", v = v).to_string(),
+                    t!("compiler.error.unkownvar", v = v).into(),
                 ));
             }
             Inst::Transfer(var, reg) => {
@@ -115,7 +115,11 @@ impl<'a> Interpreter<'a> {
                     .clone();
                 let val = val_str
                     .parse::<i32>()
-                    .map_err(|_| LpErr::Interpret(format!("`{val_str}` is not a number")))?;
+                    .map_err(|_| if val_str.is_empty() {
+                        LpErr::Interpret(t!("compiler.error.empty_var", v = var).into())
+                    } else { 
+                        LpErr::Interpret(t!("compiler.error.nan_var", var = var, val = val_str).into())
+                    })?;
                 if self.reg_store.contains_key(reg) {
                     eprintln!("Warning: overwriting register `{reg}`.");
                     if let Some(v) = self.reg_store.get_mut(reg) {

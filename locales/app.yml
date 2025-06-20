@@ -83,6 +83,12 @@ compiler:
     invalid_unary:
       en: invalid unary operator `%{op}`
       de: ungültiger unärer Operator `%{op}`
+    empty_var:
+      en: no value given for variable %{v}
+      de: kein Wert für Variable %{v} angegeben
+    nan_var:
+      en: variable %{var}'s value `%{val}` is not a number
+      de: der Wert der Variablen %{var} `%{val}` ist keine Zahl
   inst:
     add:
       en: add register %{a} to register %{b}

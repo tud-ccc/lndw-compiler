@@ -51,6 +51,7 @@ impl ConstantFold for Expr {
                         Operator::Mul => left * right,
                         Operator::Div => {
                             if right == 0 {
+                                eprintln!("Warning: detected division by zero during constant folding; not folding.");
                                 return Expr::BinaryOp(Box::new(l), operator, Box::new(r));
                             }
                             left / right
