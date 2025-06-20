@@ -145,3 +145,17 @@ interp_opts:
   cache_label:
     en: If all registers are full, computers have larger storages, called caches. While they're bigger, they're also slower to access. Think of them like big binders of files. They can hold a lot of paper, but finding a specific page takes time.
     de: Wenn alle Register voll sind, haben Computer größere Speicher, die so genannten Caches. Sie sind zwar größer, aber der Zugriff auf sie ist auch langsamer. Stellen Sie sich diese Speicher wie große Aktenordner vor. Sie können eine Menge Papier aufnehmen, aber das Auffinden einer bestimmten Seite braucht Zeit.
+examples:
+  name:
+    en: Examples
+    de: Beispiele
+  use:
+    en: Use this!
+    de: Ausprobieren!
+  shift_mul:
+    title:
+      en: Cheaper Multiplication
+      de: Schnelles Multiplizieren
+    desc:
+      en: Some multiplications are much easier for us than others. Take 16 * 10 for example. You immediately know that you only need to add a 0 at the end. It's the same for computers. But since their math works slightly different, with 1s and 0s, they can do the same trick with numbers that are a power of 2.
+      de: Manche Multiplikationsaufgaben sind für uns einfacher als andere. 16 * 10 zum Beispiel. Du weißt sofort, dass du nur eine Null am Ende anhängen musst. Bei Computern ist das genau so. Aber weil sie ein bisschen anders rechnen als wir, nämlich mit Einsen und Nullen, können sie den gleichen Trick nur mit Zahlen, die eine Potenz von 2 sind, anwenden.

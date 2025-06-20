@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::compiler::CompileOptions;
-use crate::gui::{AssemblyOutput, CodeEditor, EditorAction, InterpreterOptions, Window};
+use crate::gui::{AssemblyOutput, CodeEditor, EditorAction, Examples, InterpreterOptions, Window};
 use eframe::egui::{self, FontData, FontFamily, Modifiers, Ui, ViewportCommand};
 use eframe::epaint::text::{FontInsert, InsertFontFamily};
 use rust_i18n::t;
@@ -38,6 +38,7 @@ pub struct LndwApp {
     interpreter_options: InterpreterOptions,
     asm_unoptimized: AssemblyOutput,
     asm_optimized: AssemblyOutput,
+    examples: Examples,
     result: Option<String>,
     language: String,
 
@@ -62,6 +63,7 @@ impl LndwApp {
             asm_unoptimized: AssemblyOutput::empty("output.unopt".to_string()),
             asm_optimized: AssemblyOutput::empty("output.opt".to_string()),
             language: "en".to_string(),
+            examples: Examples::preloaded(),
             ..Self::default()
         };
 
@@ -90,8 +92,7 @@ impl eframe::App for LndwApp {
                         add_sidebar_item!(ui, self.open, self.asm_unoptimized);
                         add_sidebar_item!(ui, self.open, self.asm_optimized);
                         add_sidebar_item!(ui, self.open, self.interpreter_options);
-
-                        ui.toggle_value(&mut false, t!("app.optimizations"));
+                        add_sidebar_item!(ui, self.open, self.examples);
 
                         ui.separator();
                         if ui.button(t!("app.organize")).clicked() {
@@ -156,6 +157,15 @@ impl eframe::App for LndwApp {
         add_window!(ctx, self.open, self.asm_unoptimized);
         add_window!(ctx, self.open, self.asm_optimized);
         add_window!(ctx, self.open, self.interpreter_options);
+        add_window!(ctx, self.open, self.examples);
+
+        if let Some(choice) = self.examples.chosen {
+            self.code_editor.input_variables.clear();
+            self.code_editor.code = self.examples.examples[choice].input.into();
+            self.code_editor.compile_options = self.examples.examples[choice].options;
+
+            self.examples.chosen = None;
+        }
 
         egui::CentralPanel::default().show(ctx, |_| {});
     }
