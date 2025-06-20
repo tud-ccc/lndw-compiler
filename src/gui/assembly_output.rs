@@ -181,24 +181,33 @@ impl AssemblyOutput {
                     let size = ui.heading(t!("output.ram")).intrinsic_size;
                     ui.set_max_width(size.map_or(200.0, |s| s.x));
 
+                    let ram_size = self.hw.as_ref().unwrap().num_cachelines;
+                    // Find out what is the highest-index nonzero ram cell
+                    let end = self.interpreter.as_ref().map_or(0, |i| {
+                        i.ram.iter().enumerate().rev().find_map(|(i, r)| if *r != 0 { Some(i) } else { None }).unwrap_or(0)
+                    });
+                    println!("end is {end}");
+                    let ram_size_display = (end + 1).max(4).min(ram_size);
+
                     egui::Grid::new("ram_layout")
                         .num_columns(2)
                         .spacing([10.0, 5.0])
                         .show(ui, |ui| {
-                            let ram_size = self.hw.as_ref().unwrap().num_cachelines;
-                            for num in 0..ram_size {
-                                if (num % 2) == 0 && num > 0 {
-                                    ui.end_row();
-                                }
+                            ui.label(t!("output.ram.cell"));
+                            ui.label(t!("output.ram.content"));
+                            ui.end_row();
+                            for num in 0..ram_size_display {
+                                ui.label(num.to_string());
                                 ui.label(format!(
                                     "{}",
                                     self.interpreter.as_ref().map_or(0, |i| i.ram[num])
                                 ));
+                                ui.end_row();
                             }
-                            if (ram_size % 2) != 0 {
-                                ui.label(" ");
+                            if ram_size_display < ram_size {
+                                ui.label("...");
+                                ui.end_row();
                             }
-                            ui.end_row();
                         });
                 });
 

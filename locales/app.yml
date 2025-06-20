@@ -44,6 +44,12 @@ output:
   ram:
     en: Main memory
     de: Hauptspeicher
+  ram.cell:
+    en: Cell
+    de: Zelle
+  ram.content:
+    en: Content
+    de: Inhalt
   executing:
     en: Currently executing
     de: Wird gerade ausgeführt
