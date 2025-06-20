@@ -64,8 +64,8 @@ editor:
     en: Constant folding
     de: Konstantenfaltung
   cache_opt:
-    en: Cache optimization
-    de: Cache-Optimierung
+    en: RAM optimization
+    de: RAM-Optimierung
   common_factor_elimination:
     en: Common Factor Extraction
     de: Faktorisierung
@@ -143,8 +143,8 @@ interp_opts:
     en: Interpreter options
     de: Interpreter-Optionen
   label:
-    en: These are the settings for the Interpreter executing the code. Change them and see how the compile results change with more or less cache lines or registers.
-    de: Dies sind die Einstellungen für den Interpreter, der den Code ausführt. Ändern Sie sie und sehen Sie, wie sich die Kompilierergebnisse mit mehr oder weniger Cache-Zeilen oder Registern ändern.
+    en: These are the settings for the Interpreter executing the code. Change them and see how the compile results change with more or less RAM cells or registers.
+    de: Dies sind die Einstellungen für den Interpreter, der den Code ausführt. Ändern Sie sie und sehen Sie, wie sich die Kompilierergebnisse mit mehr oder weniger RAM-Zellen oder Registern ändern.
   explanation:
     en: Explanation
     de: Erläuterung
@@ -155,11 +155,11 @@ interp_opts:
     en: A computer processor can remember a fixed number of things. They work like post-its on your monitor. There's space for a few and you have them always ready.
     de: Ein Computerprozessor kann sich eine bestimmte Anzahl von Dingen merken. Sie funktionieren wie Post-its auf dem Monitor. Da ist Platz für ein paar und man hat sie immer parat.
   cache_size:
-    en: Cache size
-    de: Cache-Größe
+    en: RAM size
+    de: RAM-Größe
   cache_label:
-    en: If all registers are full, computers have larger storages, called caches. While they're bigger, they're also slower to access. Think of them like big binders of files. They can hold a lot of paper, but finding a specific page takes time.
-    de: Wenn alle Register voll sind, haben Computer größere Speicher, die so genannten Caches. Sie sind zwar größer, aber der Zugriff auf sie ist auch langsamer. Stellen Sie sich diese Speicher wie große Aktenordner vor. Sie können eine Menge Papier aufnehmen, aber das Auffinden einer bestimmten Seite braucht Zeit.
+    en: If all registers are full, computers have larger storages, called RAM. While they're bigger, they're also slower to access. Think of them like big binders of files. They can hold a lot of paper, but finding a specific page takes time.
+    de: Wenn alle Register voll sind, haben Computer größere Speicher, den so genannten RAM. Der ist zwar größer, aber der Zugriff ist auch langsamer. Stell Dir diese Speicher wie große Aktenordner vor. Sie können eine Menge Papier aufnehmen, aber das Auffinden einer bestimmten Seite braucht Zeit.
 examples:
   name:
     en: Examples
@@ -167,6 +167,27 @@ examples:
   use:
     en: Use this!
     de: Ausprobieren!
+  basic:
+    title:
+      en: A Simple Addition
+      de: Einfach Addition
+    desc:
+      en: A timeless classic. :)
+      de: Ein Zeitloser Klassiker des Alltags. :)
+  complex:
+    title:
+      en: A complex example
+      de: Ein kompliziertes Beispiel
+    desc:
+      en: A more complex example designed to showcase the power and limitations of optimizations. Try RAM optimizations, constant folding and shift optimizations.
+      de: Ein komplizierteres Beispiel, das das Potenzial und die Grenzen von Compiler-Optimierungen zeigen soll. Probiere Konstantenfaltung, RAM-Optimierung und Bitshift-Optimierung.
+  ram_opt:
+    title:
+      en: RAM optimization
+      de: RAM Optimierung
+    desc:
+      en: When a computer runs out of registers, it needs to make place by moving some data to RAM, a large, but very slow memory. This example showcases how removing unnecessary store optimizations speeds up execution.
+      de: Wenn dem Computer die freien Register ausgehen, muss er Platz schaffen, indem er Daten in den Arbeitsspeicher verschiebt, einen sehr großen, aber langsamen Speicher. Diese Optimierung demonstriert, wie das 'Ausmisten' unnötiger Speicher-Operationen die Ausführung beschleunigt.
   shift_mul:
     title:
       en: Cheaper Multiplication
@@ -174,3 +195,10 @@ examples:
     desc:
       en: Some multiplications are much easier for us than others. Take 16 * 10 for example. You immediately know that you only need to add a 0 at the end. It's the same for computers. But since their math works slightly different, with 1s and 0s, they can do the same trick with numbers that are a power of 2.
       de: Manche Multiplikationsaufgaben sind für uns einfacher als andere. 16 * 10 zum Beispiel. Du weißt sofort, dass du nur eine Null am Ende anhängen musst. Bei Computern ist das genau so. Aber weil sie ein bisschen anders rechnen als wir, nämlich mit Einsen und Nullen, können sie den gleichen Trick nur mit Zahlen, die eine Potenz von 2 sind, anwenden.
+  factorization:
+    title:
+      en: Factorization
+      de: Faktorisierung
+    desc:
+      en: Computers also profit from mathematical rules we learned in school. Since multiplications and divisions are especially costly, it makes sense to try and use mathematical laws to extract common factors.
+      de: Computer profitieren auch von den einfachen Rechenregeln, die wir Menschen in der Schule lernen. Da Multiplikation und Division besonders teuer sind, ergibt es Sinn, mathematische Gesetze wie Faktorisierung anzuwenden.
