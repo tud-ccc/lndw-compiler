@@ -145,80 +145,98 @@ impl AssemblyOutput {
             }
         }
 
-        ui.horizontal_top(|ui| {
+        ui.vertical_centered(|ui| {
+            // Table showing register contents, expands horizontally
+            ui.heading(t!("output.registers"));
             egui::Grid::new("register_layout")
                 .num_columns(2)
-                .spacing([30.0, 5.0])
-                .striped(true)
+                .spacing([5.0, 5.0])
                 .show(ui, |ui| {
                     let reg_count = self.hw.as_ref().unwrap().num_registers;
                     for num in 0..reg_count {
                         let reg = u8tochar(num);
-                        ui.label(format!("Register {}", reg));
-                        ui.label(format!(
+                        ui.label(format!("{}", reg));
+                    }
+                    ui.end_row();
+                    for num in 0..reg_count {
+                        let reg = u8tochar(num);
+                        let mut txt = format!(
                             "{}",
                             self.interpreter
                                 .as_ref()
                                 .map_or(&0, |i| i.reg_store.get(&reg).unwrap_or(&0))
-                        ));
-                        ui.end_row();
-                    }
-                });
-            egui::Grid::new("ram_layout")
-                .num_columns(2)
-                .spacing([10.0, 5.0])
-                .show(ui, |ui| {
-                    let ram_size = self.hw.as_ref().unwrap().num_cachelines;
-                    for num in 0..ram_size {
-                        if (num % 2) == 0 && num > 0 {
-                            ui.end_row();
-                        }
-                        ui.label(format!(
-                            "{}",
-                            self.interpreter.as_ref().map_or(0, |i| i.ram[num])
-                        ));
-                    }
-                    if (ram_size % 2) != 0 {
-                        ui.label(" ");
-                    }
-                    ui.end_row();
-                });
-        });
-
-        ui.add_space(12.0);
-
-        ui.scope_builder(
-            egui::UiBuilder::new().id_salt("interactive_container"),
-            |ui| {
-                let visuals = ui.style().noninteractive();
-                let text_color = visuals.text_color();
-
-                egui::Frame::canvas(ui.style())
-                    .fill(visuals.bg_fill.gamma_multiply(0.3))
-                    .stroke(visuals.bg_stroke)
-                    .inner_margin(ui.spacing().menu_margin)
-                    .show(ui, |ui| {
-                        ui.set_width(ui.available_width());
-
-                        ui.add_space(32.0);
-                        ui.vertical_centered(|ui| {
-                            egui::Label::new(
-                                egui::RichText::new(format!(
-                                    "{}",
-                                    self.interpreter
-                                        .as_ref()
-                                        .map_or(" ".into(), |i| i.cur_as_string())
-                                ))
-                                .color(text_color)
-                                .size(32.0),
-                            )
-                            .selectable(false)
+                        );
+                        egui::TextEdit::singleline(&mut txt)
+                            .interactive(false)
+                            .desired_width(30.0)
                             .ui(ui);
+                    }
+                });
+
+            ui.add_space(50.0);
+
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    // Table showing RAM contents, expands vertically
+                    let size = ui.heading(t!("output.ram")).intrinsic_size;
+                    ui.set_max_width(size.map_or(200.0, |s| s.x));
+
+                    egui::Grid::new("ram_layout")
+                        .num_columns(2)
+                        .spacing([10.0, 5.0])
+                        .show(ui, |ui| {
+                            let ram_size = self.hw.as_ref().unwrap().num_cachelines;
+                            for num in 0..ram_size {
+                                if (num % 2) == 0 && num > 0 {
+                                    ui.end_row();
+                                }
+                                ui.label(format!(
+                                    "{}",
+                                    self.interpreter.as_ref().map_or(0, |i| i.ram[num])
+                                ));
+                            }
+                            if (ram_size % 2) != 0 {
+                                ui.label(" ");
+                            }
+                            ui.end_row();
                         });
-                        ui.add_space(32.0);
-                    });
-            },
-        );
+                });
+
+                ui.add_space(50.0);
+
+                ui.vertical_centered(|ui| {
+                    ui.heading(t!("output.executing"));
+                    
+                    let visuals = ui.style().noninteractive();
+                    let text_color = visuals.text_color();
+
+                    egui::Frame::canvas(ui.style())
+                        .fill(visuals.bg_fill.gamma_multiply(0.3))
+                        .stroke(visuals.bg_stroke)
+                        .inner_margin(ui.spacing().menu_margin)
+                        .show(ui, |ui| {
+                            ui.set_width(200.0);
+
+                            ui.add_space(32.0);
+                            ui.vertical_centered(|ui| {
+                                egui::Label::new(
+                                    egui::RichText::new(format!(
+                                        "{}",
+                                        self.interpreter
+                                            .as_ref()
+                                            .map_or(" ".into(), |i| i.cur_as_string())
+                                    ))
+                                        .color(text_color)
+                                        .size(32.0),
+                                )
+                                    .selectable(false)
+                                    .ui(ui);
+                            });
+                            ui.add_space(32.0);
+                        });
+                });
+            });
+        });
 
         ui.separator();
 

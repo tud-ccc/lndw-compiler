@@ -38,6 +38,15 @@ output:
   result:
     en: Program result is %{res}
     de: Ergebnis ist %{res}
+  registers:
+    en: Registers
+    de: Registern
+  ram:
+    en: Main memory
+    de: Hauptspeicher
+  executing:
+    en: Currently executing
+    de: Wird gerade ausgeführt
 editor:
   name:
     en: 🖮 Code Editor
