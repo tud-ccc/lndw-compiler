@@ -53,6 +53,20 @@ output:
   executing:
     en: Currently executing
     de: Wird gerade ausgeführt
+  step:
+    button:
+      en: Run next step
+      de: Nächster Schritt
+    desc:
+      en: Executes the next instruction in the list
+      de: Führt den nächsten Befehl in der Liste aus
+  to_finish:
+    button:
+      en: Run to end
+      de: Rest ausführen
+    desc:
+      en: Executes the whole rest of the program without waiting.
+      de: Führt alle restlichen Befehle bis zum Ende des Programms aus.
 editor:
   name:
     en: 🖮 Code Editor
@@ -81,6 +95,9 @@ editor:
   run.alt:
     en: You can alternatively press CTRL+Enter to compile and run
     de: Alternativ können Sie CTRL+Enter drücken, um zu kompilieren und auszuführen
+  step:
+    en: Step by Step
+    de: Schritt für Schritt
   clear:
     en: Clear
     de: Löschen

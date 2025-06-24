@@ -16,7 +16,9 @@ pub struct AssemblyOutput {
     program_result: Option<i32>,
     interpreter: Option<Interpreter>,
     hw: Option<InterpreterOptions>,
-    running: bool,
+    pub running: bool,
+    stepwise: bool,
+    step_triggered: bool,
     total_time: f32,
 }
 
@@ -47,6 +49,8 @@ impl AssemblyOutput {
         self.total_time = 0.0;
         self.hw = None;
         self.interpreter = None;
+        self.stepwise = false;
+        self.step_triggered = false;
     }
 
     pub fn instructions(&self) -> Vec<Inst> {
@@ -74,8 +78,11 @@ impl AssemblyOutput {
         })
     }
 
-    pub fn run(&mut self, vars: &HashMap<String, String>) {
+    pub fn run(&mut self, vars: &HashMap<String, String>, stepwise: bool) {
         self.program_result = None;
+        self.stepwise = dbg!(stepwise);
+        // fix for the step being falsely triggered
+        self.step_triggered = false;
 
         if self.asm.is_none() {
             return;
@@ -86,6 +93,7 @@ impl AssemblyOutput {
         match Interpreter::with_config(&hw)
             .load_instructions(self.instructions())
             .with_variables(vars.to_owned())
+            .ready()
             .run_to_end()
         {
             Ok(r) => {
@@ -97,7 +105,8 @@ impl AssemblyOutput {
                         Interpreter::with_config(&hw)
                             .load_instructions(self.instructions())
                             .with_variables(vars.to_owned())
-                            .with_tracing(),
+                            .with_tracing()
+                            .ready(),
                     );
                 }
             }
@@ -117,9 +126,11 @@ impl AssemblyOutput {
             return;
         }
 
+        self.step_triggered = self.step_triggered || !self.stepwise;
+
         let asm = self.asm.as_mut().unwrap();
         let mut done = false;
-        if self.running {
+        if self.running && self.step_triggered {
             let curr_inst = asm.iter_mut().find(|(_, p)| p < &1.0);
             if let Some((inst, progress)) = curr_inst {
                 if progress == &0.0 {
@@ -140,6 +151,9 @@ impl AssemblyOutput {
                     Inst::Load(_, _) => 0.0033,
                 };
                 *progress += progress_increment;
+                if *progress >= 1.0 {
+                    self.step_triggered = false;
+                }
                 self.total_time += 0.016667; // 60 fps?
             } else {
                 done = true;
@@ -192,7 +206,7 @@ impl AssemblyOutput {
                             .find_map(|(i, r)| if *r != 0 { Some(i) } else { None })
                             .unwrap_or(0)
                     });
-                    println!("end is {end}");
+                    // println!("end is {end}");
                     let ram_size_display = (end + 1).max(4).min(ram_size);
 
                     egui::Grid::new("ram_layout")
@@ -248,6 +262,37 @@ impl AssemblyOutput {
                             });
                             ui.add_space(32.0);
                         });
+
+                    ui.vertical_centered_justified(|ui| {
+                        // ui.add_space(55.0);
+                        if ui
+                            .add_enabled(
+                                self.interpreter
+                                    .as_ref()
+                                    .map_or(false, Interpreter::is_running)
+                                    && self.stepwise
+                                    && !self.step_triggered,
+                                egui::Button::new(t!("output.step.button")),
+                            )
+                            .on_hover_text(t!("output.step.desc"))
+                            .clicked()
+                        {
+                            self.step_triggered = true;
+                        }
+                        if ui
+                            .add_enabled(
+                                self.interpreter
+                                    .as_ref()
+                                    .map_or(false, Interpreter::is_running)
+                                    && self.stepwise,
+                                egui::Button::new(t!("output.to_finish.button")),
+                            )
+                            .on_hover_text(t!("output.to_finish.desc"))
+                            .clicked()
+                        {
+                            self.stepwise = false;
+                        }
+                    });
                 });
             });
         });
@@ -269,7 +314,10 @@ impl AssemblyOutput {
                                 .desired_height(7.5);
                             let v = progress > &mut 0.0;
                             ui.add_visible(v, bar);
-                            ui.label(format!("{inst}"));
+                            let label = ui.label(format!("{inst}"));
+                            if *progress > 0.0 && *progress < 1.0 {
+                                label.scroll_to_me(None);
+                            }
                             ui.end_row();
                         }
                     });

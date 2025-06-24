@@ -108,6 +108,9 @@ impl eframe::App for LndwApp {
             });
         });
 
+        // STATE
+        self.code_editor.disable_run = self.asm_unoptimized.running || self.asm_optimized.running;
+
         add_window!(ctx, self.open, self.code_editor);
 
         // code actions?
@@ -138,12 +141,14 @@ impl eframe::App for LndwApp {
 
                     set_open(&mut self.open, &self.asm_unoptimized.name(), true);
                 }
-                EditorAction::Run => {
+                EditorAction::Run(stepwise) => {
                     set_open(&mut self.open, &self.asm_unoptimized.name(), true);
-                    self.asm_unoptimized.run(&self.code_editor.input_variables);
+                    self.asm_unoptimized
+                        .run(&self.code_editor.input_variables, stepwise);
                     if self.code_editor.compile_options.any() {
                         set_open(&mut self.open, &self.asm_optimized.name(), true);
-                        self.asm_optimized.run(&self.code_editor.input_variables);
+                        self.asm_optimized
+                            .run(&self.code_editor.input_variables, stepwise);
                     }
                 }
                 EditorAction::Clear => {

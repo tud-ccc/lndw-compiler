@@ -38,6 +38,9 @@ pub struct Interpreter {
     /// Input variable mapping.
     input_variables: Option<HashMap<String, String>>,
 
+    /// Whether execution has terminated.
+    running: bool,
+
     /// String representation of the current computation
     ///
     /// Needs to be enabled.
@@ -54,9 +57,10 @@ impl Interpreter {
             reg_store: Default::default(),
             ram: vec![0; hw.num_cachelines],
             instructions: Vec::with_capacity(0),
+            str_repr: String::with_capacity(0),
             program_counter: 0,
             input_variables: None,
-            str_repr: String::with_capacity(0),
+            running: false,
             repr_enabled: false,
         }
     }
@@ -84,6 +88,12 @@ impl Interpreter {
         self
     }
 
+    /// Signal to the interpreter that all data has been loaded that was needed.
+    pub fn ready(mut self) -> Self {
+        self.running = true;
+        self
+    }
+
     /// Executes the instruction list until the interpreter either terminates or encounters a critical error.
     pub fn run_to_end(mut self) -> Result<i32, LpErr> {
         loop {
@@ -94,8 +104,18 @@ impl Interpreter {
         }
     }
 
+    pub fn is_running(&self) -> bool {
+        self.running
+    }
+
     /// Executes a single step of the program.
     pub fn step(&mut self) -> Result<InterpreterState, LpErr> {
+        if !self.running {
+            return Err(LpErr::Interpret(
+                "The interpreter was either not ready to run or finished execution".into(),
+            ));
+        }
+
         println!("Variable store is: {:?}", self.reg_store);
         if self.program_counter >= self.instructions.len() {
             return Err(LpErr::Interpret("no result found".to_string()));
@@ -164,6 +184,7 @@ impl Interpreter {
             }
             Inst::Result(r) => {
                 self.program_counter += 1;
+                self.running = false;
                 return Ok((*self
                     .reg_store
                     .get(r)

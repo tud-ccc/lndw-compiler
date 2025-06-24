@@ -4,9 +4,14 @@ use crate::compiler::CompileOptions;
 use eframe::egui::{self, Align, Id, Layout, Modifiers};
 use rust_i18n::t;
 
+/// Actions that can be triggered by the editor window.
 pub enum EditorAction {
+    /// Run the compilation process.
     Compile,
-    Run,
+    /// Start execution of all generated IR versions.
+    /// The enclosed boolean value determines whether the execution is stepwise (`true`) or not (`false`).
+    Run(bool),
+    /// Clear the output buffers.
     Clear,
 }
 
@@ -15,6 +20,7 @@ pub struct CodeEditor {
     pub compile_options: CompileOptions,
     pub actions: Vec<EditorAction>,
     pub input_variables: HashMap<String, String>,
+    pub disable_run: bool,
 }
 
 impl Default for CodeEditor {
@@ -28,6 +34,7 @@ impl Default for CodeEditor {
             compile_options,
             actions: vec![],
             input_variables: HashMap::new(),
+            disable_run: false,
         }
     }
 }
@@ -52,7 +59,7 @@ impl CodeEditor {
 
         if ui.input_mut(|i| i.consume_shortcut(&compile_run_shortcut)) {
             self.actions.push(EditorAction::Compile);
-            self.actions.push(EditorAction::Run);
+            self.actions.push(EditorAction::Run(false));
         }
 
         ui.horizontal(|ui| {
@@ -96,11 +103,18 @@ impl CodeEditor {
             }
 
             if ui
-                .button(t!("editor.run"))
+                .add_enabled(!self.disable_run, egui::Button::new(t!("editor.run")))
                 .on_hover_text(t!("editor.run.alt"))
                 .clicked()
             {
-                self.actions.push(EditorAction::Run);
+                self.actions.push(EditorAction::Run(false));
+            }
+
+            if ui
+                .add_enabled(!self.disable_run, egui::Button::new(t!("editor.step")))
+                .clicked()
+            {
+                self.actions.push(EditorAction::Run(true));
             }
 
             if ui.button(t!("editor.clear")).clicked() {
