@@ -269,7 +269,7 @@ impl AssemblyOutput {
                             .add_enabled(
                                 self.interpreter
                                     .as_ref()
-                                    .map_or(false, Interpreter::is_running)
+                                    .is_some_and(Interpreter::is_running)
                                     && self.stepwise
                                     && !self.step_triggered,
                                 egui::Button::new(t!("output.step.button")),
@@ -283,7 +283,7 @@ impl AssemblyOutput {
                             .add_enabled(
                                 self.interpreter
                                     .as_ref()
-                                    .map_or(false, Interpreter::is_running)
+                                    .is_some_and(Interpreter::is_running)
                                     && self.stepwise,
                                 egui::Button::new(t!("output.to_finish.button")),
                             )
