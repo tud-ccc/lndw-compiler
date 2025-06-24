@@ -156,7 +156,7 @@ impl AssemblyOutput {
                     let reg_count = self.hw.as_ref().unwrap().num_registers;
                     for num in 0..reg_count {
                         let reg = u8tochar(num);
-                        ui.label(format!("{}", reg));
+                        ui.label(format!("{reg}"));
                     }
                     ui.end_row();
                     for num in 0..reg_count {
@@ -235,12 +235,11 @@ impl AssemblyOutput {
                             ui.add_space(32.0);
                             ui.vertical_centered(|ui| {
                                 egui::Label::new(
-                                    egui::RichText::new(format!(
-                                        "{}",
+                                    egui::RichText::new(
                                         self.interpreter
                                             .as_ref()
-                                            .map_or(" ".into(), |i| i.display_current())
-                                    ))
+                                            .map_or(" ", |i| i.display_current()),
+                                    )
                                     .color(text_color)
                                     .size(32.0),
                                 )

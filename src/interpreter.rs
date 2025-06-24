@@ -118,9 +118,9 @@ impl Interpreter {
             Inst::Shl(a, b) => run_shiftop(*a, *b, i32::unbounded_shl, &mut self.reg_store)?,
             Inst::Shr(a, b) => run_shiftop(*a, *b, i32::unbounded_shr, &mut self.reg_store)?,
             Inst::Store(n, reg) => {
-                if self.reg_store.contains_key(&reg) {
+                if self.reg_store.contains_key(reg) {
                     eprintln!("Warning: overwriting register `{reg}`.");
-                    if let Some(v) = self.reg_store.get_mut(&reg) {
+                    if let Some(v) = self.reg_store.get_mut(reg) {
                         *v = *n;
                     }
                 } else {
@@ -166,7 +166,7 @@ impl Interpreter {
                 self.program_counter += 1;
                 return Ok((*self
                     .reg_store
-                    .get(&r)
+                    .get(r)
                     .ok_or(LpErr::Interpret(format!("register `{r}` is empty")))?)
                 .into());
             }
@@ -176,7 +176,7 @@ impl Interpreter {
                 )));
             }
             Inst::Write(r, addr) => {
-                if let Some(val) = self.reg_store.get(&r) {
+                if let Some(val) = self.reg_store.get(r) {
                     self.ram[*addr] = *val;
                 } else {
                     return Err(LpErr::Interpret(format!("register `{r}` is empty")));
@@ -218,7 +218,7 @@ impl Interpreter {
         )
     }
 
-    pub fn display_current<'a>(&'a self) -> &'a str {
+    pub fn display_current(&self) -> &str {
         &self.str_repr
     }
 

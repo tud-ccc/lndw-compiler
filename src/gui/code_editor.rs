@@ -19,8 +19,10 @@ pub struct CodeEditor {
 
 impl Default for CodeEditor {
     fn default() -> Self {
-        let mut compile_options = CompileOptions::default();
-        compile_options.run_cache_optimization = true;
+        let compile_options = CompileOptions {
+            run_cache_optimization: true,
+            ..Default::default()
+        };
         Self {
             code: "1 + 1".into(),
             compile_options,
