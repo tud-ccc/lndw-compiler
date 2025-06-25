@@ -3,7 +3,7 @@ This project is a demonstration application for showing how a compiler works on 
 Although it has been created for the Lange Nacht der Wissenschaften (long night of sciences), it can be used for any demonstration purpose, of course.
 
 ## Usage
-To run the app, clone the repository and run `cargo run` (`--release`) in its root directory. This requires a nightly/>=1.88 Rust installation.
+To run the app, clone the repository and run `cargo run` (`--release`) in its root directory. This requires a Rust installation; the minimum supported Rust version (MSRV) is 1.88.
 
 The app looks something like this and is mostly self-explanatory:
 
