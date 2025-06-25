@@ -7,4 +7,4 @@ To run the app, clone the repository and run `cargo run` (`--release`) in its ro
 
 The app looks something like this and is mostly self-explanatory:
 
-![image](https://github.com/user-attachments/assets/f61c8af1-29ae-4a93-b7a7-c4cf7759d1b0)
+![image](./assets/image.png)
