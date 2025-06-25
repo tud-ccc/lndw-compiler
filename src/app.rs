@@ -109,7 +109,8 @@ impl eframe::App for LndwApp {
         });
 
         // STATE
-        self.code_editor.disable_run = self.asm_unoptimized.running || self.asm_optimized.running;
+        self.code_editor.disable_run =
+            self.asm_unoptimized.is_running() || self.asm_optimized.is_running();
 
         add_window!(ctx, self.open, self.code_editor);
 

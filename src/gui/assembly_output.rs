@@ -16,7 +16,7 @@ pub struct AssemblyOutput {
     program_result: Option<i32>,
     interpreter: Option<Interpreter>,
     hw: Option<InterpreterOptions>,
-    pub running: bool,
+    running: bool,
     stepwise: bool,
     step_triggered: bool,
     total_time: f32,
@@ -57,6 +57,10 @@ impl AssemblyOutput {
         self.asm
             .as_ref()
             .map_or(vec![], |v| v.iter().map(|(inst, _)| inst.clone()).collect())
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.running
     }
 
     pub fn compile(
