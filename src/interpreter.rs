@@ -1,6 +1,6 @@
 use rust_i18n::t;
 use std::collections::HashMap;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Shl, Shr, Sub};
 
 use crate::{
     gui::InterpreterOptions,
@@ -134,8 +134,8 @@ impl Interpreter {
                 }
                 run_binop(*a, *b, i32::div, &mut self.reg_store)?
             }
-            Inst::Shl(a, b) => run_shiftop(*a, *b, i32::unbounded_shl, &mut self.reg_store)?,
-            Inst::Shr(a, b) => run_shiftop(*a, *b, i32::unbounded_shr, &mut self.reg_store)?,
+            Inst::Shl(a, b) => run_binop(*a, *b, i32::shl, &mut self.reg_store)?,
+            Inst::Shr(a, b) => run_binop(*a, *b, i32::shr, &mut self.reg_store)?,
             Inst::Store(n, reg) => {
                 if self.reg_store.insert(*reg, *n).is_some() {
                     eprintln!("Warning: overwriting register `{reg}`.");
@@ -236,20 +236,6 @@ fn run_binop(
 ) -> Result<(), LpErr> {
     match (reg_store.get(&a).cloned(), reg_store.get_mut(&b)) {
         (Some(a), Some(b)) => *b = op(a, *b),
-        (None, _) => return Err(LpErr::Interpret(format!("no such reg `{a}`"))),
-        (_, None) => return Err(LpErr::Interpret(format!("no such reg `{b}`"))),
-    }
-    Ok(())
-}
-
-fn run_shiftop(
-    a: Reg,
-    b: Reg,
-    op: impl FnOnce(i32, u32) -> i32,
-    reg_store: &mut HashMap<Reg, i32>,
-) -> Result<(), LpErr> {
-    match (reg_store.get(&a).cloned(), reg_store.get_mut(&b)) {
-        (Some(a), Some(b)) => *b = op(a, *b as u32),
         (None, _) => return Err(LpErr::Interpret(format!("no such reg `{a}`"))),
         (_, None) => return Err(LpErr::Interpret(format!("no such reg `{b}`"))),
     }
