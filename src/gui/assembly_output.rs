@@ -84,7 +84,7 @@ impl AssemblyOutput {
 
     pub fn run(&mut self, vars: &HashMap<String, String>, stepwise: bool) {
         self.program_result = None;
-        self.stepwise = dbg!(stepwise);
+        self.stepwise = stepwise;
         // fix for the step being falsely triggered
         self.step_triggered = false;
 
@@ -118,6 +118,7 @@ impl AssemblyOutput {
         }
     }
 
+    /// Render the assembly output UI. TODO: could use a refactor if you'd ever want to change it.
     pub fn ui(&mut self, ui: &mut egui::Ui) {
         if let Some(error) = &self.error {
             ui.colored_label(egui::Color32::RED, "Error:");
@@ -132,6 +133,8 @@ impl AssemblyOutput {
 
         self.step_triggered = self.step_triggered || !self.stepwise;
 
+        // TODO: this mixed UI-interpreter logic is very bad practice, especially since we have a
+        // TODO: great `Interpreter` struct that could handle this for us. We should decouple this.
         let asm = self.asm.as_mut().unwrap();
         let mut done = false;
         if self.running && self.step_triggered {
@@ -200,6 +203,7 @@ impl AssemblyOutput {
                     let size = ui.heading(t!("output.ram")).intrinsic_size;
                     ui.set_max_width(size.map_or(200.0, |s| s.x));
 
+                    // Some logic to not have to print all RAM cells if they're unused.
                     let ram_size = self.hw.as_ref().unwrap().num_cachelines;
                     // Find out what is the highest-index nonzero ram cell
                     let end = self.interpreter.as_ref().map_or(0, |i| {
@@ -210,7 +214,8 @@ impl AssemblyOutput {
                             .find_map(|(i, r)| if *r != 0 { Some(i) } else { None })
                             .unwrap_or(0)
                     });
-                    // println!("end is {end}");
+
+                    // Print at least one more cell after the last nonzero one, but within [4, size]
                     let ram_size_display = (end + 1).max(4).min(ram_size);
 
                     egui::Grid::new("ram_layout")

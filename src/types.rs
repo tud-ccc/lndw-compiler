@@ -66,12 +66,6 @@ pub enum Expr {
     BinaryOp(Box<Expr>, Operator, Box<Expr>),
 }
 
-impl Expr {
-    pub fn is_num(&self) -> bool {
-        matches!(self, Expr::Num { .. })
-    }
-}
-
 impl From<i32> for Expr {
     fn from(value: i32) -> Self {
         Expr::Num(value)
@@ -108,6 +102,8 @@ pub enum Inst {
     Load(MemAddr, Reg),
 }
 
+/// Localized user-friendly output, e.g. `t!("compiler.inst.add", ...)` becomes "add register a to
+/// register b" in English. Not to be used programmatically.
 impl Display for Inst {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {

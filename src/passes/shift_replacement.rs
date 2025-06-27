@@ -20,11 +20,12 @@ impl ShiftReplacement for Expr {
                 o,
                 Box::new(rhs.replace_multiplications_with_bitshifts()),
             ),
-            Expr::BinaryOp(left, Operator::Mul, right) => {
+            Expr::BinaryOp(left, op @ (Operator::Mul | Operator::Div), right) => {
                 // this is actually a neat trick since 1000 & 0111 == 0 and that holds true for all powers of 2
                 if let &Expr::Num(lhs) = left.as_ref()
-                    && (lhs & (lhs - 1)) == 0
+                    && (lhs & (lhs - 1)) == 0 && !matches!(op, Operator::Div)
                 {
+                    // mul only
                     Expr::BinaryOp(
                         right,
                         Operator::Shl,
@@ -33,32 +34,21 @@ impl ShiftReplacement for Expr {
                 } else if let &Expr::Num(rhs) = right.as_ref()
                     && (rhs & (rhs - 1)) == 0
                 {
+                    // mul + div
                     Expr::BinaryOp(
                         Box::new(left.replace_multiplications_with_bitshifts()),
-                        Operator::Shl,
+                        match op {
+                            Operator::Mul => Operator::Shl,
+                            Operator::Div => Operator::Shr,
+                            _ => unreachable!(),
+                        },
                         Box::new(Expr::Num(rhs.ilog2() as i32)),
                     )
                 } else {
+                    // mul + div
                     Expr::BinaryOp(
                         Box::new(left.replace_multiplications_with_bitshifts()),
-                        Operator::Mul,
-                        Box::new(right.replace_multiplications_with_bitshifts()),
-                    )
-                }
-            }
-            Expr::BinaryOp(left, Operator::Div, right) => {
-                if let &Expr::Num(rhs) = right.as_ref()
-                    && (rhs & (rhs - 1)) == 0
-                {
-                    Expr::BinaryOp(
-                        Box::new(left.replace_multiplications_with_bitshifts()),
-                        Operator::Shr,
-                        Box::new(Expr::Num(rhs.ilog2() as i32)),
-                    )
-                } else {
-                    Expr::BinaryOp(
-                        Box::new(left.replace_multiplications_with_bitshifts()),
-                        Operator::Div,
+                        op,
                         Box::new(right.replace_multiplications_with_bitshifts()),
                     )
                 }

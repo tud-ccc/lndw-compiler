@@ -15,11 +15,7 @@ impl ConstantFold for Expr {
                 self
             }
             Expr::UnaryOp(operator, expr) => {
-                let e = if !expr.is_num() {
-                    expr.run_constant_fold()
-                } else {
-                    *expr
-                };
+                let e = expr.run_constant_fold();
 
                 if let Expr::Num(n) = e
                     && operator == Operator::Sub
@@ -30,17 +26,8 @@ impl ConstantFold for Expr {
                 Expr::UnaryOp(operator, Box::new(e))
             }
             Expr::BinaryOp(lhs, operator, rhs) => {
-                let l = if !lhs.is_num() {
-                    lhs.run_constant_fold()
-                } else {
-                    *lhs
-                };
-
-                let r = if !rhs.is_num() {
-                    rhs.run_constant_fold()
-                } else {
-                    *rhs
-                };
+                let l = lhs.run_constant_fold();
+                let r = rhs.run_constant_fold();
 
                 if let Expr::Num(left) = l
                     && let Expr::Num(right) = r

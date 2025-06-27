@@ -116,7 +116,6 @@ impl Interpreter {
             ));
         }
 
-        println!("Variable store is: {:?}", self.reg_store);
         if self.program_counter >= self.instructions.len() {
             return Err(LpErr::Interpret("no result found".to_string()));
         }
@@ -130,7 +129,7 @@ impl Interpreter {
             Inst::Sub(a, b) => run_binop(*a, *b, i32::sub, &mut self.reg_store)?,
             Inst::Mul(a, b) => run_binop(*a, *b, i32::mul, &mut self.reg_store)?,
             Inst::Div(a, b) => {
-                if check_store_contains(&self.reg_store, *b)? == 0 {
+                if let Some(0) = self.reg_store.get(b) {
                     return Err(LpErr::Interpret(t!("compiler.error.divzero").to_string()));
                 }
                 run_binop(*a, *b, i32::div, &mut self.reg_store)?
@@ -138,48 +137,29 @@ impl Interpreter {
             Inst::Shl(a, b) => run_shiftop(*a, *b, i32::unbounded_shl, &mut self.reg_store)?,
             Inst::Shr(a, b) => run_shiftop(*a, *b, i32::unbounded_shr, &mut self.reg_store)?,
             Inst::Store(n, reg) => {
-                if self.reg_store.contains_key(reg) {
+                if self.reg_store.insert(*reg, *n).is_some() {
                     eprintln!("Warning: overwriting register `{reg}`.");
-                    if let Some(v) = self.reg_store.get_mut(reg) {
-                        *v = *n;
-                    }
-                } else {
-                    self.reg_store.insert(*reg, *n);
                 }
             }
-            Inst::Transfer(v, _)
-                if !self
-                    .input_variables
-                    .as_ref()
-                    .ok_or(LpErr::Interpret("No variables loaded".into()))?
-                    .contains_key(v) =>
-            {
-                return Err(LpErr::Interpret(
-                    t!("compiler.error.unkownvar", v = v).into(),
-                ));
-            }
             Inst::Transfer(var, reg) => {
-                let val_str = self
+                let vars = self
                     .input_variables
                     .as_ref()
-                    .ok_or(LpErr::Interpret("No variables loaded".into()))?[var]
-                    .clone();
+                    .ok_or(LpErr::Interpret("No variables loaded".into()))?;
+                if !vars.contains_key(var) {
+                    return Err(LpErr::Interpret(t!("compiler.error.unknown_var", v = var).into()));
+                }
+
+                let val_str = vars[var].clone();
+                if val_str.is_empty() {
+                    return Err(LpErr::Interpret(t!("compiler.error.empty_var", v = var).into()));
+                }
+
                 let val = val_str.parse::<i32>().map_err(|_| {
-                    if val_str.is_empty() {
-                        LpErr::Interpret(t!("compiler.error.empty_var", v = var).into())
-                    } else {
-                        LpErr::Interpret(
-                            t!("compiler.error.nan_var", var = var, val = val_str).into(),
-                        )
-                    }
+                    LpErr::Interpret(t!("compiler.error.nan_var", var = var, val = val_str).into())
                 })?;
-                if self.reg_store.contains_key(reg) {
+                if self.reg_store.insert(*reg, val).is_some() {
                     eprintln!("Warning: overwriting register `{reg}`.");
-                    if let Some(v) = self.reg_store.get_mut(reg) {
-                        *v = val;
-                    }
-                } else {
-                    self.reg_store.insert(*reg, val);
                 }
             }
             Inst::Result(r) => {
@@ -204,10 +184,7 @@ impl Interpreter {
                 }
             }
             Inst::Load(addr, r) => {
-                self.reg_store
-                    .entry(*r)
-                    .and_modify(|e| *e = self.ram[*addr])
-                    .or_insert(self.ram[*addr]);
+                self.reg_store.insert(*r, self.ram[*addr]);
             }
         }
 
@@ -257,10 +234,10 @@ fn run_binop(
     op: impl FnOnce(i32, i32) -> i32,
     reg_store: &mut HashMap<Reg, i32>,
 ) -> Result<(), LpErr> {
-    let a = check_store_contains(reg_store, a)?;
-    check_store_contains(reg_store, b)?;
-    if let Some(b) = reg_store.get_mut(&b) {
-        *b = op(a, *b);
+    match (reg_store.get(&a).cloned(), reg_store.get_mut(&b)) {
+        (Some(a), Some(b)) => *b = op(a, *b),
+        (None, _) => return Err(LpErr::Interpret(format!("no such reg `{a}`"))),
+        (_, None) => return Err(LpErr::Interpret(format!("no such reg `{b}`"))),
     }
     Ok(())
 }
@@ -271,18 +248,10 @@ fn run_shiftop(
     op: impl FnOnce(i32, u32) -> i32,
     reg_store: &mut HashMap<Reg, i32>,
 ) -> Result<(), LpErr> {
-    let a = check_store_contains(reg_store, a)?;
-    check_store_contains(reg_store, b)?;
-
-    if let Some(b) = reg_store.get_mut(&b) {
-        *b = op(a, *b as u32);
+    match (reg_store.get(&a).cloned(), reg_store.get_mut(&b)) {
+        (Some(a), Some(b)) => *b = op(a, *b as u32),
+        (None, _) => return Err(LpErr::Interpret(format!("no such reg `{a}`"))),
+        (_, None) => return Err(LpErr::Interpret(format!("no such reg `{b}`"))),
     }
     Ok(())
-}
-
-fn check_store_contains(store: &HashMap<Reg, i32>, key: Reg) -> Result<i32, LpErr> {
-    match store.get(&key) {
-        Some(v) => Ok(*v),
-        None => Err(LpErr::Interpret(format!("no such reg `{key}`"))),
-    }
 }

@@ -12,22 +12,21 @@ impl CommonFactorElimination for Expr {
                 let right = right.extract_common_factors();
 
                 let common_factors = extract_factors(&left, &right);
-
-                if !common_factors.is_empty() {
-                    let factor = &common_factors[0];
-                    let left_remainder = remove_factor_from_expr(&left, factor);
-                    let right_remainder = remove_factor_from_expr(&right, factor);
-
-                    let sum = Expr::BinaryOp(
-                        Box::new(left_remainder),
-                        Operator::Add,
-                        Box::new(right_remainder),
-                    );
-
-                    Expr::BinaryOp(Box::new(factor.clone()), Operator::Mul, Box::new(sum))
-                } else {
-                    Expr::BinaryOp(Box::new(left), Operator::Add, Box::new(right))
+                if common_factors.is_empty() {
+                    return Expr::BinaryOp(Box::new(left), Operator::Add, Box::new(right));
                 }
+
+                let factor = &common_factors[0];
+                let left_remainder = remove_factor_from_expr(&left, factor);
+                let right_remainder = remove_factor_from_expr(&right, factor);
+
+                let sum = Expr::BinaryOp(
+                    Box::new(left_remainder),
+                    Operator::Add,
+                    Box::new(right_remainder),
+                );
+
+                Expr::BinaryOp(Box::new(factor.clone()), Operator::Mul, Box::new(sum))
             }
             Expr::BinaryOp(left, op, right) => {
                 let left = left.extract_common_factors();

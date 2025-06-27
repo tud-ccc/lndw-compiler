@@ -46,7 +46,7 @@ impl Compiler {
     pub fn compile(self, input: &str) -> Result<(Vec<Inst>, HashSet<String>), LpErr> {
         let mut ast = parser::run_parser(input)?;
         if self.options.do_constant_folding {
-            ast = ast.run_constant_fold();
+            ast = ast.run_constant_fold(); // first time
         }
 
         if self.options.do_common_factor_elimination {
@@ -55,6 +55,10 @@ impl Compiler {
 
         if self.options.do_shift_replacement {
             ast = ast.replace_multiplications_with_bitshifts();
+        }
+
+        if self.options.do_constant_folding {
+            ast = ast.run_constant_fold(); // second time
         }
 
         let (mut instructions, variables) = self.generate_ir(&ast)?;
@@ -281,6 +285,9 @@ impl Compiler {
 }
 
 pub fn u8tochar(reg: u8) -> char {
+    // Converts to base 36, i.e. [0..9, a, b, ..z]
+    // +10 means that it maps [0, 1, ..] to [a, b, ..].
+    assert!(reg <= 26, "max 26 registers supported (a..z)");
     char::from_digit(reg as u32 + 10, 36).unwrap()
 }
 

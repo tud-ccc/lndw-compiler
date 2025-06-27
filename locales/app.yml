@@ -109,12 +109,12 @@ compiler:
     divzero:
       en: attempted division by zero
       de: versuchte Division durch Null
-    unknownvar:
-      en: unknown variable
-      de: unbekannte Variable `%{v}`
     invalid_unary:
       en: invalid unary operator `%{op}`
       de: ungültiger unärer Operator `%{op}`
+    unknown_var:
+      en: unknown variable
+      de: unbekannte Variable `%{v}`
     empty_var:
       en: no value given for variable %{v}
       de: kein Wert für Variable %{v} angegeben
