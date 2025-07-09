@@ -69,6 +69,8 @@ impl LndwApp {
             }],
         ));
 
+        egui_extras::install_image_loaders(&cc.egui_ctx);
+
         let mut res = Self {
             asm_unoptimized: AssemblyOutput::empty("output.unopt".to_string()),
             asm_optimized: AssemblyOutput::empty("output.opt".to_string()),
@@ -108,6 +110,12 @@ impl eframe::App for LndwApp {
                         if ui.button(t!("app.organize")).clicked() {
                             ui.ctx().memory_mut(|mem| mem.reset_areas());
                         }
+
+                        // Spacing hack: image is square, so take available width and use it to
+                        // subtract from the available height, which we use as filler with add_space
+                        let img_width_height = ui.available_width();
+                        ui.add_space(ui.available_height() - img_width_height);
+                        ui.add(egui::Image::new(egui::include_image!("../assets/icon.png")));
                     });
                 });
             });
