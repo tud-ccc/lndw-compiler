@@ -41,6 +41,8 @@ pub struct LndwApp {
     examples: Examples,
     result: Option<String>,
     language: String,
+    title_modal_open: bool,
+    working_title: String,
 
     /// List of open windows
     open: BTreeSet<String>,
@@ -48,6 +50,14 @@ pub struct LndwApp {
 
 impl LndwApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        // If we have previously edited the app's name/title, try to load it here
+        let name = cc.egui_ctx.memory_mut(|mem| {
+            mem.data.get_persisted::<String>(crate::APP_NAME.into())
+        });
+        if let Some(app_name) = name {
+            cc.egui_ctx.send_viewport_cmd(ViewportCommand::Title(app_name))
+        }
+
         cc.egui_ctx.set_zoom_factor(1.5);
 
         cc.egui_ctx.add_font(FontInsert::new(
@@ -104,7 +114,7 @@ impl eframe::App for LndwApp {
 
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                file_menu_button(ui, &mut self.language);
+                file_menu_button(ui, &mut self.language, &mut self.title_modal_open, &mut self.working_title);
             });
         });
 
@@ -177,7 +187,7 @@ impl eframe::App for LndwApp {
     }
 }
 
-fn file_menu_button(ui: &mut Ui, lang: &mut String) {
+fn file_menu_button(ui: &mut Ui, lang: &mut String, title_modal_open: &mut bool, working_title: &mut String) {
     let organize_shortcut =
         egui::KeyboardShortcut::new(Modifiers::CTRL | Modifiers::SHIFT, egui::Key::O);
     let reset_shortcut =
@@ -229,6 +239,10 @@ fn file_menu_button(ui: &mut Ui, lang: &mut String) {
         {
             ui.ctx().memory_mut(|mem| *mem = Default::default());
         }
+
+        if ui.button(t!("app.change_title")).clicked() {
+            *title_modal_open = true;
+        }
     });
 
     if ui
@@ -237,8 +251,6 @@ fn file_menu_button(ui: &mut Ui, lang: &mut String) {
     {
         rust_i18n::set_locale("de");
         *lang = "de".to_string();
-        ui.ctx()
-            .send_viewport_cmd(ViewportCommand::Title(t!("app.name").to_string()));
     }
     if ui
         .selectable_label(lang.as_str() == "en", t!("app.english"))
@@ -246,7 +258,38 @@ fn file_menu_button(ui: &mut Ui, lang: &mut String) {
     {
         rust_i18n::set_locale("en");
         *lang = "en".to_string();
-        ui.ctx()
-            .send_viewport_cmd(ViewportCommand::Title(t!("app.name").to_string()));
+    }
+
+    let mut should_update_title = false;
+    if *title_modal_open {
+        let modal = egui::Modal::new("title modal".into()).show(ui.ctx(), |ui| {
+            ui.set_width(300.0);
+            ui.heading(t!("app.change_title"));
+
+            ui.add_space(24.0);
+
+            let r = ui.text_edit_singleline(working_title);
+
+            ui.add_space(24.0);
+
+            if ui.button("Save").clicked() ||
+                (r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)))
+            {
+                ui.ctx().memory_mut(|mem| {
+                    mem.data.insert_persisted(crate::APP_NAME.into(), working_title.clone());
+                });
+                *title_modal_open = false;
+                should_update_title = true;
+            }
+        });
+
+        if modal.should_close() {
+            *title_modal_open = false;
+        }
+    }
+
+    // We have to defer until here to prevent deadlock when reading ctx inside Modal::show
+    if should_update_title {
+        ui.ctx().send_viewport_cmd(ViewportCommand::Title(working_title.clone()));
     }
 }

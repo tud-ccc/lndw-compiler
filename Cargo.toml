@@ -7,5 +7,5 @@ license = "GPL-3.0-or-later"
 
 [dependencies]
 chumsky = "0.10"
-eframe = "0.31.1"
+eframe = { version = "0.31.1", features = ["persistence"] }
 rust-i18n = "3.1.5"

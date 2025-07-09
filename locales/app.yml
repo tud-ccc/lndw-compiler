@@ -1,8 +1,7 @@
 _version: 2
 app:
-  name:
-    en: Long night of sciences
-    de: Lange Nacht der Wissenschaften
+  default_name:
+    en: CCC Compiler Demo - TUD Chair for Compiler Construction
   english:
     en: English
     de: Englisch
@@ -22,6 +21,9 @@ app:
     en: Reset egui memory
   forget:
     en: Forget scroll, positions, sizes etc
+  change_title:
+    en: Change app title
+    de: App-Titel ändern
 output:
   unopt:
     en: Unoptimized output
