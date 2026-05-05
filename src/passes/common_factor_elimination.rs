@@ -20,11 +20,7 @@ impl CommonFactorElimination for Expr {
                 let left_remainder = remove_factor_from_expr(&left, factor);
                 let right_remainder = remove_factor_from_expr(&right, factor);
 
-                let sum = Expr::BinaryOp(
-                    Box::new(left_remainder),
-                    Operator::Add,
-                    Box::new(right_remainder),
-                );
+                let sum = Expr::BinaryOp(Box::new(left_remainder), Operator::Add, Box::new(right_remainder));
 
                 Expr::BinaryOp(Box::new(factor.clone()), Operator::Mul, Box::new(sum))
             }

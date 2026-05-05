@@ -155,9 +155,9 @@ impl Interpreter {
                     return Err(LpErr::Interpret(t!("compiler.error.empty_var", v = var).into()));
                 }
 
-                let val = val_str.parse::<i32>().map_err(|_| {
-                    LpErr::Interpret(t!("compiler.error.nan_var", var = var, val = val_str).into())
-                })?;
+                let val = val_str
+                    .parse::<i32>()
+                    .map_err(|_| LpErr::Interpret(t!("compiler.error.nan_var", var = var, val = val_str).into()))?;
                 if self.reg_store.insert(*reg, val).is_some() {
                     eprintln!("Warning: overwriting register `{reg}`.");
                 }
@@ -172,9 +172,7 @@ impl Interpreter {
                 .into());
             }
             Inst::Write(_, addr) | Inst::Load(addr, _) if addr >= &self.ram.len() => {
-                return Err(LpErr::Interpret(format!(
-                    "requested RAM address {addr} doesn't exist."
-                )));
+                return Err(LpErr::Interpret(format!("requested RAM address {addr} doesn't exist.")));
             }
             Inst::Write(r, addr) => {
                 if let Some(val) = self.reg_store.get(r) {
@@ -228,12 +226,7 @@ impl Interpreter {
     }
 }
 
-fn run_binop(
-    a: Reg,
-    b: Reg,
-    op: impl FnOnce(i32, i32) -> i32,
-    reg_store: &mut HashMap<Reg, i32>,
-) -> Result<(), LpErr> {
+fn run_binop(a: Reg, b: Reg, op: impl FnOnce(i32, i32) -> i32, reg_store: &mut HashMap<Reg, i32>) -> Result<(), LpErr> {
     match (reg_store.get(&a).cloned(), reg_store.get_mut(&b)) {
         (Some(a), Some(b)) => *b = op(a, *b),
         (None, _) => return Err(LpErr::Interpret(format!("no such reg `{a}`"))),

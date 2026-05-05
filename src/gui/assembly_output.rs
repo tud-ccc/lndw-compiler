@@ -200,7 +200,7 @@ impl AssemblyOutput {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
                     // Table showing RAM contents, expands vertically
-                    let size = ui.heading(t!("output.ram")).intrinsic_size;
+                    let size = ui.heading(t!("output.ram")).intrinsic_size();
                     ui.set_max_width(size.map_or(200.0, |s| s.x));
 
                     // Some logic to not have to print all RAM cells if they're unused.
@@ -227,10 +227,7 @@ impl AssemblyOutput {
                             ui.end_row();
                             for num in 0..ram_size_display {
                                 ui.label(num.to_string());
-                                ui.label(format!(
-                                    "{}",
-                                    self.interpreter.as_ref().map_or(0, |i| i.ram[num])
-                                ));
+                                ui.label(format!("{}", self.interpreter.as_ref().map_or(0, |i| i.ram[num])));
                                 ui.end_row();
                             }
                             if ram_size_display < ram_size {
@@ -258,13 +255,9 @@ impl AssemblyOutput {
                             ui.add_space(32.0);
                             ui.vertical_centered(|ui| {
                                 egui::Label::new(
-                                    egui::RichText::new(
-                                        self.interpreter
-                                            .as_ref()
-                                            .map_or(" ", |i| i.display_current()),
-                                    )
-                                    .color(text_color)
-                                    .size(32.0),
+                                    egui::RichText::new(self.interpreter.as_ref().map_or(" ", |i| i.display_current()))
+                                        .color(text_color)
+                                        .size(32.0),
                                 )
                                 .selectable(false)
                                 .ui(ui);
@@ -276,9 +269,7 @@ impl AssemblyOutput {
                         // ui.add_space(55.0);
                         if ui
                             .add_enabled(
-                                self.interpreter
-                                    .as_ref()
-                                    .is_some_and(Interpreter::is_running)
+                                self.interpreter.as_ref().is_some_and(Interpreter::is_running)
                                     && self.stepwise
                                     && !self.step_triggered,
                                 egui::Button::new(t!("output.step.button")),
@@ -290,10 +281,7 @@ impl AssemblyOutput {
                         }
                         if ui
                             .add_enabled(
-                                self.interpreter
-                                    .as_ref()
-                                    .is_some_and(Interpreter::is_running)
-                                    && self.stepwise,
+                                self.interpreter.as_ref().is_some_and(Interpreter::is_running) && self.stepwise,
                                 egui::Button::new(t!("output.to_finish.button")),
                             )
                             .on_hover_text(t!("output.to_finish.desc"))

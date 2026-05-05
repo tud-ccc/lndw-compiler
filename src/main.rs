@@ -6,9 +6,9 @@ mod parser;
 mod passes;
 mod types;
 
-use std::sync::Arc;
 use crate::app::LndwApp;
 use rust_i18n::t;
+use std::sync::Arc;
 
 rust_i18n::i18n!("locales", fallback = "en");
 
@@ -26,9 +26,5 @@ fn main() {
     native_options.viewport.title = Some(t!("app.default_name").into());
     native_options.viewport.icon = icon;
 
-    let _ = eframe::run_native(
-        APP_NAME,
-        native_options,
-        Box::new(|cc| Ok(Box::new(LndwApp::new(cc)))),
-    );
+    let _ = eframe::run_native(APP_NAME, native_options, Box::new(|cc| Ok(Box::new(LndwApp::new(cc)))));
 }

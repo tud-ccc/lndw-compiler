@@ -83,10 +83,7 @@ impl CodeEditor {
                 &mut self.compile_options.do_constant_folding,
                 t!("editor.constant_folding"),
             );
-            ui.checkbox(
-                &mut self.compile_options.run_cache_optimization,
-                t!("editor.cache_opt"),
-            );
+            ui.checkbox(&mut self.compile_options.run_cache_optimization, t!("editor.cache_opt"));
             ui.checkbox(
                 &mut self.compile_options.do_common_factor_elimination,
                 t!("editor.common_factor_elimination"),

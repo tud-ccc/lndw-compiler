@@ -1,8 +1,6 @@
 use crate::gui::InterpreterOptions;
 use crate::parser;
-use crate::passes::{
-    CommonFactorElimination, ConstantFold, ShiftReplacement, run_cache_optimization,
-};
+use crate::passes::{CommonFactorElimination, ConstantFold, ShiftReplacement, run_cache_optimization};
 pub use crate::types::*;
 use rust_i18n::t;
 use std::collections::{HashMap, HashSet};
@@ -161,9 +159,7 @@ impl Compiler {
 
                 code.push(Inst::Store(*n, u8tochar(reg)));
                 if mmap.contains_key(ast) {
-                    eprintln!(
-                        "Tried overwriting existing MMAP value -- duplicate expression {ast:?}"
-                    );
+                    eprintln!("Tried overwriting existing MMAP value -- duplicate expression {ast:?}");
                 } else {
                     mmap.insert(ast, Location::Reg(reg));
                 }
@@ -184,9 +180,7 @@ impl Compiler {
 
                 code.push(Inst::Transfer(v.clone(), u8tochar(reg)));
                 if mmap.contains_key(ast) {
-                    eprintln!(
-                        "[warn] Tried overwriting existing MMAP value -- duplicate expression {ast:?}"
-                    );
+                    eprintln!("[warn] Tried overwriting existing MMAP value -- duplicate expression {ast:?}");
                 } else {
                     mmap.insert(ast, Location::Reg(reg));
                 }
@@ -197,27 +191,10 @@ impl Compiler {
             }
             Expr::UnaryOp(Operator::Sub, e) => {
                 // TODO: optimization potential -> do the right register first to avoid collisions
-                let mut left_reg = self.ast_to_ir(
-                    &Expr::Num(0),
-                    next_reg,
-                    ram_idx,
-                    code,
-                    variables,
-                    mmap,
-                    rmap,
-                )?;
-                let mut right_reg =
-                    self.ast_to_ir(e, next_reg, ram_idx, code, variables, mmap, rmap)?;
+                let mut left_reg = self.ast_to_ir(&Expr::Num(0), next_reg, ram_idx, code, variables, mmap, rmap)?;
+                let mut right_reg = self.ast_to_ir(e, next_reg, ram_idx, code, variables, mmap, rmap)?;
 
-                self.fetch_if_necessary(
-                    &mut left_reg,
-                    &Expr::Num(0),
-                    next_reg,
-                    ram_idx,
-                    code,
-                    mmap,
-                    rmap,
-                );
+                self.fetch_if_necessary(&mut left_reg, &Expr::Num(0), next_reg, ram_idx, code, mmap, rmap);
 
                 self.fetch_if_necessary(&mut right_reg, e, next_reg, ram_idx, code, mmap, rmap);
 
@@ -229,14 +206,10 @@ impl Compiler {
 
                 Ok(right_reg)
             }
-            Expr::UnaryOp(op, _) => Err(LpErr::IR(
-                t!("compiler.error.invalid_unary", op = op).to_string(),
-            )),
+            Expr::UnaryOp(op, _) => Err(LpErr::IR(t!("compiler.error.invalid_unary", op = op).to_string())),
             Expr::BinaryOp(left, op, right) => {
-                let mut left_reg =
-                    self.ast_to_ir(left, next_reg, ram_idx, code, variables, mmap, rmap)?;
-                let mut right_reg =
-                    self.ast_to_ir(right, next_reg, ram_idx, code, variables, mmap, rmap)?;
+                let mut left_reg = self.ast_to_ir(left, next_reg, ram_idx, code, variables, mmap, rmap)?;
+                let mut right_reg = self.ast_to_ir(right, next_reg, ram_idx, code, variables, mmap, rmap)?;
 
                 self.fetch_if_necessary(&mut left_reg, left, next_reg, ram_idx, code, mmap, rmap);
                 self.fetch_if_necessary(&mut right_reg, right, next_reg, ram_idx, code, mmap, rmap);
