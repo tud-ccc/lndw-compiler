@@ -17,9 +17,9 @@ macro_rules! add_sidebar_item {
 }
 
 macro_rules! add_window {
-    ($ctx: expr, $open: expr, $item: expr) => {
+    ($ui: expr, $open: expr, $item: expr) => {
         let mut is_open = $open.contains(&$item.name());
-        $item.show($ctx, &mut is_open);
+        $item.show($ui, &mut is_open);
         set_open(&mut $open, &$item.name(), is_open);
     };
 }
